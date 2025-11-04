@@ -1,0 +1,4 @@
+pylint>=3.0.0
+colorama>=0.4.4
+pathlib2>=2.3.7
+typing-extensions>=4.0.0

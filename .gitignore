@@ -216,3 +216,4 @@ _local_archive/
 01_plan/test_case_api/converted/*
 .DS_Store
 test_case_api/docs/WELCOME.md
+test_case_api/pylint_tests/results/*.html
