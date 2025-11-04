@@ -135,7 +135,7 @@ Generated test cases are returned in the same JSON format as input, with the `Te
   "CATEGORY": "Functional",
   "PARAMETER_CATEGORY": "INPUT VOLTAGE",
   "Test_Case": "OBJECTIVE:\nVerify that the MCU correctly senses input voltage through a dedicated ADC line.\n\nPRECONDITIONS:\n- MCU is powered on and configured\n- ADC is calibrated\n...",
-  "Generated_At": "2024-10-20T12:34:56.789012"
+  "Generated_At": "2025-10-20T12:34:56.789012"
 }
 ```
 
@@ -536,6 +536,6 @@ Potential improvements:
 
 ---
 
-**Created**: October 2024
+**Created**: October 2025
 **Status**: Active
 **Maintenance**: Ongoing
