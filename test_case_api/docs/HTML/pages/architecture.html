@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture | Test Case Generator API</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">System Design</span>
+      <h1 class="hero-title">Architecture & Execution Flow</h1>
+      <p class="hero-subtitle">Understand how <code>app.py</code> structures endpoints, assembles prompts, validates payloads, and coordinates with Ollama to return deterministic JSON outputs.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="../index.html">Overview</a>
+        <a data-nav href="architecture.html">Architecture</a>
+        <a data-nav href="api-guide.html">API Guide</a>
+        <a data-nav href="client-guide.html">Client SDK</a>
+        <a data-nav href="operations.html">Operations</a>
+        <a data-nav href="resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>Module Breakdown</h2>
+        <div class="card-grid">
+          <div class="card">
+            <h3>Configuration Layer</h3>
+            <p>Environment variables drive Ollama URLs, model defaults, and file size limits. The system instructions path is anchored at <code style="word-break: break-all; overflow-wrap: break-word;">instructions/system_instructions.md</code>.</p>
+          </div>
+          <div class="card">
+            <h3>Prompt Pipeline</h3>
+            <p><code>build_system_prompt()</code> loads the LLM guardrails while <code>build_generation_prompt()</code> embeds SolaHD DC UPS context to produce requirement-aware prompts.</p>
+          </div>
+          <div class="card">
+            <h3>Generation Core</h3>
+            <p><code style="word-break: break-all; overflow-wrap: break-word;">generate_test_case_for_requirement()</code> orchestrates validation, prompt assembly, LLM invocation, and response normalization with <code style="word-break: break-all; overflow-wrap: break-word;">Generated_At</code> timestamps.</p>
+          </div>
+          <div class="card">
+            <h3>Transport Layer</h3>
+            <p>Endpoints expose synchronous JSON responses, Server-Sent Events (SSE) streams, and file-based ingestion with chunked progress callbacks.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Primary Request Flow</h2>
+        <div class="mermaid">
+          sequenceDiagram
+            participant Client as Client (curl, SDK)
+            participant API as Flask API
+            participant Prompt as Prompt Builder
+            participant Ollama as Ollama Runtime
+            participant Response as JSON Output
+
+            Client->>API: POST /generate { requirement }
+            API->>Prompt: validate_requirement()
+            Prompt-->>API: requirement valid?
+            API->>Prompt: build_system_prompt()
+            API->>Prompt: build_generation_prompt()
+            Prompt-->>API: prompts constructed
+            API->>Ollama: POST /api/generate {system, prompt}
+            Ollama-->>API: test case text
+            API->>Response: enrich with Generated_At
+            Response-->>Client: HTTP 200 + JSON payload
+        </div>
+        <p>The design keeps Flask endpoints slim: they delegate to focused helper functions for validation, prompt assembly, and Ollama communication. Any exception raised upstream propagates through Flask’s error handlers, resulting in consistent JSON error responses.</p>
+      </section>
+
+      <section>
+        <h2>Key Functions & Responsibilities</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Function</th>
+              <th>Defined In</th>
+              <th>Responsibility</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>load_system_instructions()</code></td>
+              <td><code>app.py</code></td>
+              <td>Reads instructions from disk with UTF-8 encoding and provides a fallback prompt if the file is missing.</td>
+            </tr>
+            <tr>
+              <td><code>build_generation_prompt()</code></td>
+              <td><code>app.py</code></td>
+              <td>Injects requirement attributes into a domain-rich LLM prompt tailored for SolaHD DC UPS integration testing.</td>
+            </tr>
+            <tr>
+              <td><code>call_ollama_generate()</code></td>
+              <td><code>app.py</code></td>
+              <td>Posts to <code>/api/generate</code>, enforces timeouts, and manages HTTP errors carefully.</td>
+            </tr>
+            <tr>
+              <td><code>generate_test_case_for_requirement()</code></td>
+              <td><code>app.py</code></td>
+              <td>Single entry point combining validation, prompts, LLM call, and response enrichment.</td>
+            </tr>
+            <tr>
+              <td><code>generate_batch()</code></td>
+              <td><code>app.py</code></td>
+              <td>Iterates sequentially through requirements, aggregates successes and per-index error reports.</td>
+            </tr>
+            <tr>
+              <td><code>generate_stream()</code></td>
+              <td><code>app.py</code></td>
+              <td>SSE generator that surfaces <code>start</code>, <code>progress</code>, <code>result</code>, and <code>complete</code> events in real time.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Error Handling Strategy</h2>
+        <div class="callout">
+          <div>
+            <strong>Resilience Highlights</strong>
+            <ul>
+              <li><code>validate_requirement()</code> ensures mandatory fields before any LLM call.</li>
+              <li>HTTP errors from Ollama raise descriptive exceptions captured as JSON responses.</li>
+              <li>Uploads enforce extension and size limits defined by <code>MAX_FILE_SIZE_MB</code>.</li>
+              <li>Global 404 and 500 handlers deliver consistent JSON error structures.</li>
+            </ul>
+          </div>
+        </div>
+        <p>When multiple requirements are processed, the API never aborts the entire batch—each failure is captured with its index, requirement ID (if available), and exception string.</p>
+      </section>
+
+      <section>
+        <h2>Configuration Sources</h2>
+        <p>Runtime defaults align with environment variables and provide safe fallbacks when values are missing. Override them via <code>.env</code> or process-level variables.</p>
+        <pre><code class="language-text">OLLAMA_BASE_URL  # Defaults to http://localhost:11434
+OLLAMA_MODEL     # Defaults to llama3:latest
+OLLAMA_TIMEOUT   # Defaults to 180 seconds
+MAX_FILE_SIZE_MB # Defaults to 10 MB
+HOST             # Defaults to 0.0.0.0
+PORT             # Defaults to 5000
+FLASK_DEBUG      # Enables debug mode when "true"
+</code></pre>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Next: dive into request and response contracts in the API Guide.</span>
+      <ul class="list-inline">
+        <li><a href="api-guide.html">API Reference</a></li>
+        <li><a href="client-guide.html">Python Client</a></li>
+        <li><a href="operations.html">Operations</a></li>
+        <li><a href="resources.html">Resources</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="../assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>

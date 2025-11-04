@@ -1,0 +1,150 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resources | Test Case Generator API</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">Resource Hub</span>
+      <h1 class="hero-title">Supporting Artifacts</h1>
+      <p class="hero-subtitle">Quick access to Markdown guides, sample payloads, instructions, and workspace metadata that complement the HTML documentation.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="../index.html">Overview</a>
+        <a data-nav href="architecture.html">Architecture</a>
+        <a data-nav href="api-guide.html">API Guide</a>
+        <a data-nav href="client-guide.html">Client SDK</a>
+        <a data-nav href="operations.html">Operations</a>
+        <a data-nav href="resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>Core Documentation (Markdown)</h2>
+        <p>Canonical Markdown sources remain in <code>docs/</code>. Use them for deeper dives or version-controlled edits.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>README.md</code></td>
+              <td>End-to-end project overview, quick start, workflows, and troubleshooting.</td>
+            </tr>
+            <tr>
+              <td><code>docs/START_HERE.md</code></td>
+              <td>Orientation guide for new collaborators.</td>
+            </tr>
+            <tr>
+              <td><code>docs/QUICKSTART.md</code></td>
+              <td>5-minute setup procedure with summarized commands.</td>
+            </tr>
+            <tr>
+              <td><code>docs/Others/API_SPECIFICATION.md</code></td>
+              <td>Detailed API specification predating this HTML set.</td>
+            </tr>
+            <tr>
+              <td><code>docs/Others/PROJECT_OVERVIEW.md</code></td>
+              <td>Legacy background material on system goals and design constraints.</td>
+            </tr>
+            <tr>
+              <td><code>instructions/system_instructions.md</code></td>
+              <td>Active system prompt used by the server.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Samples & Fixtures</h2>
+        <p>Use the sample JSON payloads to validate deployments, create regression suites, or demo the API.</p>
+        <div class="card-grid">
+          <div class="card">
+            <h3><code>samples/single_requirement.json</code></h3>
+            <p>Minimal requirement object for quick sanity checks.</p>
+          </div>
+          <div class="card">
+            <h3><code>samples/batch_requirements.json</code></h3>
+            <p>Representative batch input covering multiple categories.</p>
+          </div>
+          <div class="card">
+            <h3><code>samples/sample_w_model.json</code></h3>
+            <p>Demonstrates per-request model overrides.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Supporting Scripts</h2>
+        <p>Operational scripts help verify behavior beyond the Python client.</p>
+        <ul>
+          <li><code>docs/Others/test_api.sh</code>: Bash harness to exercise endpoints sequentially.</li>
+          <li><code>convert_results.py</code>: Utility for transforming generation output formats.</li>
+          <li><code>app_serve.py</code> and <code>app_original.py</code>: Historical variations of the Flask server.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Repository Metadata</h2>
+        <div class="mermaid">
+          graph LR
+            A[Workspace Root] --> B[LICENSE]
+            A --> C[README.md]
+            A --> D[test_case_api/]
+            D --> E[app.py]
+            D --> F[client.py]
+            D --> G[docs/]
+            G --> H[HTML/]
+            G --> I[QUICKSTART.md]
+            D --> J[instructions/]
+            D --> K[samples/]
+        </div>
+        <p>This visualization emphasizes how the new HTML directory fits alongside existing documentation assets.</p>
+      </section>
+
+      <section>
+        <h2>Next Steps</h2>
+        <div class="callout">
+          <strong>Keep the Documentation Fresh</strong>
+          <p>Whenever you update the codebase, revisit both Markdown sources and the HTML pages. Align examples with the latest function signatures and environment defaults.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Return to the Overview to restart your journey or jump directly into operations.</span>
+      <ul class="list-inline">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="operations.html">Operations</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="../assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>
+

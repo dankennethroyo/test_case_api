@@ -1,0 +1,380 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║          🎯 TEST CASE GENERATOR API - SETUP COMPLETE! 🎯                 ║
+║                                                                            ║
+║        Flask REST API for System-Level Integration Black-Box Testing      ║
+║                       Using Ollama LLM                                    ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📁 PROJECT LOCATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/Users/emersonsolahd/EMR_SOLAHD/00_DCUPS/sdu_ups/01_plan/test_case_api/
+
+
+📦 COMPLETE FILE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Core Application Files
+   • app.py                     - Main Flask API server
+   • client.py                  - Python client library
+   • requirements.txt           - Python dependencies
+
+✅ Configuration Files
+   • .env.example              - Environment template (copy to .env)
+
+✅ Testing & Scripts
+   • test_api.sh               - Bash test script for all endpoints
+
+✅ Documentation (7 files)
+   • WELCOME.md                - START HERE! Overview & 5-min guide
+   • INDEX.md                  - File guide & documentation map
+   • QUICKSTART.md             - Step-by-step setup guide (5 min)
+   • README.md                 - Complete documentation (20 min)
+   • API_SPECIFICATION.md      - Detailed endpoint reference
+   • PROJECT_OVERVIEW.md       - Project architecture & features
+   • CUSTOMIZATION_GUIDE.md    - Customize test generation
+
+✅ Customizable Instructions
+   • instructions/system_instructions.md  - System prompt (MODIFY THIS!)
+
+✅ Sample Data
+   • samples/single_requirement.json      - Example single requirement
+   • samples/batch_requirements.json      - Example batch (5 requirements)
+
+
+🚀 QUICK START (5 MINUTES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Prerequisites Check:
+   $ python3 --version          # Should be 3.8+
+   $ curl http://localhost:11434/api/tags  # Verify Ollama running
+
+2. Install:
+   $ cd /Users/emersonsolahd/EMR_SOLAHD/00_DCUPS/sdu_ups/01_plan/test_case_api
+   $ python3 -m venv venv
+   $ source venv/bin/activate
+   $ pip install -r requirements.txt
+
+3. Configure (optional):
+   $ cp .env.example .env
+   # Edit .env if needed (most defaults work)
+
+4. Run:
+   $ python app.py
+   # Should see: "Running on http://0.0.0.0:5000"
+
+5. Test (in another terminal):
+   $ curl http://localhost:5000/health
+   $ curl -X POST http://localhost:5000/generate \
+     -H "Content-Type: application/json" \
+     -d '{
+       "REQUIREMENTS_ID": "REQ-001-01",
+       "DESCRIPTION": "System shall sense input voltage.",
+       "CATEGORY": "Functional"
+     }' | jq '.Test_Case'
+
+✅ DONE! You now have a working test case generator!
+
+
+📚 DOCUMENTATION ROADMAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👉 START HERE:
+   1. WELCOME.md          - Overview & key features (5 min)
+   2. QUICKSTART.md       - Step-by-step setup (5 min)
+
+FOR FULL UNDERSTANDING:
+   3. README.md           - Complete documentation (20 min)
+   4. API_SPECIFICATION.md - All endpoints & examples (reference)
+
+FOR ADVANCED USAGE:
+   5. PROJECT_OVERVIEW.md - Architecture & deployment (15 min)
+   6. CUSTOMIZATION_GUIDE.md - Improve test quality (15 min)
+
+FOR NAVIGATION:
+   7. INDEX.md            - File structure & quick links
+
+
+🎯 WHAT THIS API DOES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INPUT:
+  Software requirement in JSON format with fields like:
+  - REQUIREMENTS_ID
+  - DESCRIPTION
+  - CATEGORY
+  - Optional: PARAMETER_CATEGORY, VERIFICATION_PLAN, VALIDATION_CRITERIA
+
+PROCESS:
+  • Uses Ollama LLM to understand requirement
+  • Generates detailed, executable test case
+  • Focuses on system-level, black-box testing
+  • Creates concrete steps with specific values
+
+OUTPUT:
+  Same JSON with Test_Case field populated:
+  - Objective: What is tested
+  - Preconditions: Required setup
+  - Test Steps: Numbered actions with expected results
+  - Expected Result: Final verification
+  - Test Data: Specific values & parameters
+  - Edge Cases: Boundary conditions
+
+
+🔧 KEY FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Single test case generation (REST API)
+✅ Batch processing (multiple requirements at once)
+✅ File upload (bulk requirements processing)
+✅ Customizable system instructions (control test style)
+✅ Multiple Ollama models (speed vs quality tradeoff)
+✅ Python client library (programmatic access)
+✅ Docker support (containerized deployment)
+✅ System-level focus (black-box testing emphasis)
+✅ Hardware/embedded systems support
+✅ No authentication (perfect for internal use)
+
+
+📊 API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET  /health                 - Check API & Ollama status
+GET  /models                 - List available Ollama models
+GET  /instructions           - Get current system instructions
+POST /instructions           - Update system instructions
+
+POST /generate               - Generate single test case
+POST /generate/batch         - Generate multiple test cases
+POST /generate/file          - Upload & process JSON file
+
+
+💻 USAGE EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Single Test Case:
+  $ curl -X POST http://localhost:5000/generate \
+    -H "Content-Type: application/json" \
+    -d @samples/single_requirement.json | jq '.Test_Case'
+
+Batch Processing:
+  $ curl -X POST http://localhost:5000/generate/batch \
+    -H "Content-Type: application/json" \
+    -d @samples/batch_requirements.json > results.json
+
+File Upload:
+  $ curl -X POST http://localhost:5000/generate/file \
+    -F "file=@requirements.json" > results.json
+
+Python Client:
+  from client import TestCaseGeneratorClient
+  client = TestCaseGeneratorClient()
+  result = client.generate({
+    "REQUIREMENTS_ID": "REQ-001-01",
+    "DESCRIPTION": "...",
+    "CATEGORY": "Functional"
+  })
+  print(result.test_case)
+
+
+⚙️ CONFIGURATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Environment variables in .env:
+
+OLLAMA_BASE_URL=http://localhost:11434  # Where Ollama runs
+OLLAMA_MODEL=llama2                     # Which model to use
+OLLAMA_TIMEOUT=180                      # Request timeout (seconds)
+
+HOST=0.0.0.0                            # API server host
+PORT=5000                               # API server port
+FLASK_DEBUG=False                       # Debug mode
+
+MAX_FILE_SIZE_MB=10                     # File upload limit
+
+
+🆘 TROUBLESHOOTING QUICK FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Issue: "Connection refused"
+Fix:   Verify Ollama: curl http://localhost:11434/api/tags
+
+Issue: "Model not found"
+Fix:   Pull model: ollama pull llama2 (or mistral)
+
+Issue: "Timeout errors"
+Fix:   Increase OLLAMA_TIMEOUT in .env or use faster model
+
+Issue: "Poor quality test cases"
+Fix:   Update system_instructions.md or use POST /instructions
+
+See QUICKSTART.md for more troubleshooting.
+
+
+📋 SYSTEM INSTRUCTIONS (CUSTOMIZABLE!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: instructions/system_instructions.md
+
+This file contains the system prompt that guides the LLM on:
+  • What type of testing to focus on
+  • How to structure test cases
+  • What details to include
+  • Domain-specific guidelines
+
+MODIFY THIS FILE to customize test case generation!
+
+Or use API endpoint:
+  $ curl -X POST http://localhost:5000/instructions \
+    -H "Content-Type: application/json" \
+    -d '{"instructions": "Your custom instructions here"}'
+
+See CUSTOMIZATION_GUIDE.md for domain-specific examples.
+
+
+🎓 LEARNING PATH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏱️ BEGINNER (30 minutes):
+   1. Read WELCOME.md
+   2. Read QUICKSTART.md
+   3. Install and run
+   4. Test with curl
+
+⏱️ INTERMEDIATE (2 hours):
+   1. Read README.md (full docs)
+   2. Try all API endpoints
+   3. Review API_SPECIFICATION.md
+   4. Try Python client
+
+⏱️ ADVANCED (2-3 hours):
+   1. Read PROJECT_OVERVIEW.md
+   2. Read CUSTOMIZATION_GUIDE.md
+   3. Customize system_instructions.md
+   4. Integrate into workflow
+
+
+🌟 SAMPLE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Try the sample files to see API in action:
+
+Single requirement:
+  samples/single_requirement.json
+
+Batch of 5 requirements:
+  samples/batch_requirements.json
+
+Use with API:
+  $ curl -X POST http://localhost:5000/generate \
+    -H "Content-Type: application/json" \
+    -d @samples/single_requirement.json
+
+
+🐳 DIRECT EXECUTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Direct execution (no Docker needed):
+
+Setup:
+  $ python3 -m venv venv
+  $ source venv/bin/activate
+  $ pip install -r requirements.txt
+
+Run:
+  $ python app.py
+
+The API will start at http://localhost:5000
+
+Simple and straightforward - just Python!
+
+See README.md for direct execution details.
+
+
+✨ NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Choose your path:
+
+🟢 FAST TRACK (15 min):
+   1. Read QUICKSTART.md
+   2. Run setup commands
+   3. Test with curl
+   → Start generating test cases!
+
+🟡 FULL UNDERSTANDING (2 hours):
+   1. Read QUICKSTART.md
+   2. Install and test
+   3. Read README.md
+   4. Try Python client
+   → Integrate into workflow
+
+🔴 ADVANCED INTEGRATION (2-3 hours):
+   1. Read PROJECT_OVERVIEW.md
+   2. Customize system_instructions.md
+   3. Integrate with test system
+   → Full production setup
+
+
+❓ FREQUENTLY ASKED QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Do I need Ollama running separately?
+A: Yes, Ollama must be running. Start it before running the API.
+
+Q: What models should I use?
+A: Try 'llama2' (good quality) or 'mistral' (fast). See README for comparison.
+
+Q: Can I generate test cases offline?
+A: Yes! Ollama runs locally - no cloud dependency.
+
+Q: How do I improve test case quality?
+A: Customize system_instructions.md. See CUSTOMIZATION_GUIDE.md.
+
+Q: Can I integrate with my test management system?
+A: Yes! Use REST API or Python client. See integration examples in README.md.
+
+Q: Is this for unit testing?
+A: No, this is for system-level black-box testing (integration testing).
+
+Q: Can I deploy in Docker?
+A: Yes! Use Dockerfile or docker-compose.yml included.
+
+Q: Is API authentication required?
+A: No, designed for internal use. Add authentication as needed.
+
+See INDEX.md or documentation files for more Q&A.
+
+
+📞 SUPPORT RESOURCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Setup questions:      → QUICKSTART.md
+API usage:            → API_SPECIFICATION.md
+Integration:          → README.md examples
+Customization:        → CUSTOMIZATION_GUIDE.md
+Architecture:         → PROJECT_OVERVIEW.md
+Navigation:           → INDEX.md
+
+
+🎉 YOU'RE ALL SET!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Everything you need is in place!
+
+👉 NEXT: Read WELCOME.md or QUICKSTART.md to get started!
+
+Questions? Check the documentation or see INDEX.md for navigation.
+
+Good luck with your test case generation! 🚀
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+Version: 1.0 (October 2024)
+Status: Production Ready ✅
+Maintenance: Active
+
+═════════════════════════════════════════════════════════════════════════════

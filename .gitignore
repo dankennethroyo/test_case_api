@@ -205,3 +205,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+#local Archive files
+_local_archive/
+# Ignore only the top-level .local directory; change to `**/.local/` to ignore all .local dirs
+/.local/
+.local/*
+**/.local/
+01_plan/test_case_api/converted/*
+.DS_Store
+test_case_api/docs/WELCOME.md

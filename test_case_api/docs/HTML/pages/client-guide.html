@@ -1,0 +1,175 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client SDK | Test Case Generator API</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">Python Toolkit</span>
+      <h1 class="hero-title">Client Automation Guide</h1>
+      <p class="hero-subtitle">Harness the <code>TestCaseGeneratorClient</code> defined in <code>client.py</code> to embed automated test case generation inside notebooks, CI pipelines, or desktop utilities.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="../index.html">Overview</a>
+        <a data-nav href="architecture.html">Architecture</a>
+        <a data-nav href="api-guide.html">API Guide</a>
+        <a data-nav href="client-guide.html">Client SDK</a>
+        <a data-nav href="operations.html">Operations</a>
+        <a data-nav href="resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>Environment Bootstrapping</h2>
+        <p>The client loads environment variables on startup, creating a local <code>.env</code> automatically when absent. Ensure <code>.env.example</code> is present before running the module as a script.</p>
+        <pre><code class="language-powershell">cd test_case_api
+python client.py</code></pre>
+        <p>Running the module directly launches a guided workflow: health checks, model listing, and generation from <code>samples/batch_requirements.json</code> with incremental saves to <code>output/</code>.</p>
+      </section>
+
+      <section>
+        <h2>Instantiation & Configuration</h2>
+        <div class="card-grid">
+          <div class="card">
+            <h3>Constructor</h3>
+            <p><code>TestCaseGeneratorClient(base_url: str, timeout: int)</code> builds a persistent <code>requests.Session</code> with default timeout of 300 seconds.</p>
+          </div>
+          <div class="card">
+            <h3>Base URL</h3>
+            <p>Defaults to <code>API_SERVER</code> from the environment or <code>http://localhost:5000</code> if unset.</p>
+          </div>
+          <div class="card">
+            <h3>Model Override</h3>
+            <p>Pass <code>model="mistral"</code> (or any available tag) per call to bypass the server default.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Quick Usage</h2>
+        <pre><code class="language-python">from client import TestCaseGeneratorClient
+
+client = TestCaseGeneratorClient()
+
+if not client.health_check():
+    raise RuntimeError("API not reachable")
+
+models = client.list_models()
+print("Available:", ", ".join(models))
+
+requirement = {
+    "REQUIREMENTS_ID": "REQ-CLI-001",
+    "DESCRIPTION": "System shall transfer to battery within 4ms of AC loss.",
+    "CATEGORY": "Functional"
+}
+
+result = client.generate(requirement, model="mistral")
+if result.status == "success":
+    print(result.test_case)
+else:
+    print("Generation failed:", result.error)
+</code></pre>
+      </section>
+
+      <section>
+        <h2>Generation APIs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Returns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>generate(requirement, model=None)</code></td>
+              <td>POST <code>/generate</code> for a single requirement.</td>
+              <td><code>GenerationResult</code> with status, test case, timestamp.</td>
+            </tr>
+            <tr>
+              <td><code>generate_batch(requirements, model=None)</code></td>
+              <td>POST <code>/generate/batch</code> and map responses to results.</td>
+              <td>List of <code>GenerationResult</code>.</td>
+            </tr>
+            <tr>
+              <td><code>generate_from_file(file_path, model=None, incremental_save=False, output_file=None)</code></td>
+              <td>Loads a JSON file containing a <code>requirements</code> array and processes each item individually.</td>
+              <td>List of <code>GenerationResult</code> while optionally saving after each requirement.</td>
+            </tr>
+            <tr>
+              <td><code>save_results(results, output_file, format="json", append=False)</code></td>
+              <td>Persist results as JSON or plain text; safe for incremental appends.</td>
+              <td><code>True</code> on success, <code>False</code> on failure.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Incremental Processing Pipeline</h2>
+  <div class="mermaid">
+flowchart LR
+  A[JSON file path] --> B[generate_from_file]
+  B --> C{Requirement valid?}
+  C -->|No| D[Return GenerationResult error]
+  C -->|Yes| E[generate requirement]
+  E --> F{Status}
+  F -->|success| G[Append to results list]
+  F -->|failed| H[Capture exception]
+  G --> I{incremental save?}
+  H --> I
+  I -->|true| J[save_results append]
+  I -->|false| K[Continue loop]
+  J --> K
+  K --> L[Return collected GenerationResult list]
+  </div>
+
+      </section>
+
+      <section>
+        <h2>Saving Strategies</h2>
+        <p>Use JSON persistence for re-ingestion and text exports for quick human review. Incremental saving prevents data loss during long-running batches.</p>
+        <pre><code class="language-python">results = client.generate_batch(requirements)
+client.save_results(results, "output/batch_results.json")
+client.save_results(results, "output/batch_results.txt", format="txt")</code></pre>
+        <div class="alert">
+          When <code>append=True</code>, the client reloads existing JSON, concatenates new results, and rewrites the file. Corrupt JSON is safely overwritten.
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Keep scaling: learn about streaming and operational guardrails next.</span>
+      <ul class="list-inline">
+        <li><a href="operations.html">Operations</a></li>
+        <li><a href="resources.html">Resources</a></li>
+        <li><a href="../index.html">Overview</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="../assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>
+
