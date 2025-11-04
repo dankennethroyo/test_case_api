@@ -1,0 +1,240 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Guide | Test Case Generator API</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">API Reference</span>
+      <h1 class="hero-title">REST Endpoint Catalog</h1>
+      <p class="hero-subtitle">Detailed contracts, payload schemas, response envelopes, and status codes for every REST endpoint exposed by <code>app.py</code>.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="../index.html">Overview</a>
+        <a data-nav href="architecture.html">Architecture</a>
+        <a data-nav href="api-guide.html">API Guide</a>
+        <a data-nav href="client-guide.html">Client SDK</a>
+        <a data-nav href="operations.html">Operations</a>
+        <a data-nav href="resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>Endpoint Matrix</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Route</th>
+              <th>Purpose</th>
+              <th>Success Codes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/health</code></td>
+              <td>Validate connectivity to the API and Ollama runtime.</td>
+              <td>200, 503</td>
+            </tr>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/models</code></td>
+              <td>Enumerate available Ollama models plus the server default.</td>
+              <td>200, 503</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/generate</code></td>
+              <td>Generate a test case for a single requirement payload.</td>
+              <td>200, 400, 500</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/generate/batch</code></td>
+              <td>Sequentially generate test cases for an array of requirements.</td>
+              <td>200, 207, 400, 500</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/generate/file</code></td>
+              <td>Upload JSON file containing requirements; receive aggregated results.</td>
+              <td>200, 207, 400, 413, 500</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/generate/stream</code></td>
+              <td>Stream Server-Sent Events while processing a JSON array.</td>
+              <td>200, 207</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/generate/file/stream</code></td>
+              <td>Stream progress for uploaded JSON files.</td>
+              <td>200, 207</td>
+            </tr>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/instructions</code></td>
+              <td>Fetch the active system instructions used to steer the LLM.</td>
+              <td>200, 500</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/instructions</code></td>
+              <td>Replace the instruction file on disk.</td>
+              <td>200, 400, 500</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Request Schema: /generate</h2>
+        <p>Each requirement must provide <code>REQUIREMENTS_ID</code>, <code>DESCRIPTION</code>, and <code>CATEGORY</code>. Optional fields are passed through to the LLM prompt and echoed back in the response.</p>
+        <pre><code class="language-json">POST /generate
+Content-Type: application/json
+
+{
+  "REQUIREMENTS_ID": "REQ-001-01",
+  "DESCRIPTION": "The input voltage shall be sensed by the MCU with a dedicated ADC line.",
+  "CATEGORY": "Functional",
+  "PARAMETER_CATEGORY": "Input Voltage",
+  "model": "mistral"  // optional override
+}</code></pre>
+        <p>Successful calls return the enriched requirement object with two extra fields: <code>Test_Case</code> (plain text) and <code>Generated_At</code> (ISO 8601 timestamp).</p>
+        <pre><code class="language-json">{
+  "REQUIREMENTS_ID": "REQ-001-01",
+  "DESCRIPTION": "...",
+  "CATEGORY": "Functional",
+  "PARAMETER_CATEGORY": "Input Voltage",
+  "Test_Case": "OBJECTIVE: Verify MCU senses input voltage ...",
+  "Generated_At": "2024-10-20T12:34:56.789012"
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>Batch Processing</h2>
+        <p>Batch submissions iterate requirements sequentially. Errors are captured per index with status code <code>207 Multi-Status</code> when any item fails.</p>
+        <pre><code class="language-json">POST /generate/batch
+Content-Type: application/json
+
+{
+  "requirements": [
+    {
+      "REQUIREMENTS_ID": "REQ-BATCH-001",
+      "DESCRIPTION": "Input voltage shall be sensed ...",
+      "CATEGORY": "Functional"
+    },
+    {
+      "REQUIREMENTS_ID": "REQ-BATCH-002",
+      "DESCRIPTION": "System shall transfer to battery within 4ms of AC loss.",
+      "CATEGORY": "Functional"
+    }
+  ],
+  "model": "llama3:latest"
+}</code></pre>
+        <pre><code class="language-json">{
+  "total": 2,
+  "successful": 1,
+  "failed": 1,
+  "results": [
+    {
+      "index": 0,
+      "status": "success",
+      "data": {"REQUIREMENTS_ID": "REQ-BATCH-001", ...}
+    }
+  ],
+  "errors": [
+    {
+      "index": 1,
+      "status": "failed",
+      "error": "Ollama API timeout after 180 seconds"
+    }
+  ]
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>File Uploads</h2>
+        <p><code>/generate/file</code> accepts a multipart form with a JSON file. The file can contain a single requirement object, an array, or an object with a <code>requirements</code> array.</p>
+        <pre><code class="language-powershell">curl -X POST http://localhost:5000/generate/file `
+  -F "file=@samples/batch_requirements.json" `
+  -F "model=mistral"
+</code></pre>
+        <div class="alert">
+          Files larger than <code>MAX_FILE_SIZE_MB</code> (default 10 MB) are rejected with HTTP 413. Each requirement is processed individually after a successful upload.
+        </div>
+      </section>
+
+      <section>
+        <h2>Streaming Contracts</h2>
+        <div class="mermaid">
+          sequenceDiagram
+            participant Client
+            participant API as /generate/stream
+            participant Generator as Requirement Loop
+
+            Client->>API: POST { requirements, model }
+            API->>Client: data: {"type":"start","total":N }
+            loop for each requirement
+              API->>Client: data: {"type":"progress","index":i }
+              API->>Client: data: {"type":"result","status":"success", ...}
+            end
+            API->>Client: data: {"type":"complete","successful":S,"failed":F }
+        </div>
+        <p>Streaming endpoints emit JSON objects prefixed with <code>data:</code> and separated by blank lines. Use EventSource or SSE-compatible libraries to consume them.</p>
+      </section>
+
+      <section>
+        <h2>Instruction Management</h2>
+        <p>Instructions dictate the prompt persona and formatting. They live alongside code under <code>instructions/system_instructions.md</code>.</p>
+        <pre><code class="language-json">GET /instructions
+{
+  "instructions": "You are an expert QA engineer ...",
+  "file_path": ".../instructions/system_instructions.md",
+  "file_exists": true
+}</code></pre>
+        <pre><code class="language-json">POST /instructions
+Content-Type: application/json
+
+{
+  "instructions": "Updated guidance..."
+}</code></pre>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Next up: automate these calls with the bundled Python client.</span>
+      <ul class="list-inline">
+        <li><a href="client-guide.html">Python Client</a></li>
+        <li><a href="operations.html">Operations</a></li>
+        <li><a href="resources.html">Resources</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="../assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>
+

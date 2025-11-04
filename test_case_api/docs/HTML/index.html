@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Case Generator API | Documentation Hub</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">Test Case Generator API</span>
+      <h1 class="hero-title">Comprehensive Documentation Workspace</h1>
+      <p class="hero-subtitle">Explore the architecture, endpoints, workflows, and client tooling that power automated system-level test case generation for the SolaHD SDU DC UPS “B” Series.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="index.html">Overview</a>
+        <a data-nav href="pages/architecture.html">Architecture</a>
+        <a data-nav href="pages/api-guide.html">API Guide</a>
+        <a data-nav href="pages/client-guide.html">Client SDK</a>
+        <a data-nav href="pages/operations.html">Operations</a>
+        <a data-nav href="pages/resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>What You Will Find</h2>
+        <p>This documentation set covers every layer of the workspace located in <code>test_case_api/</code>. Use the navigation to dive into component-level explanations, API formats, streaming workflows, and operational playbooks. Each page is handcrafted to match the source code so you can trace any behavior back to its implementation.</p>
+        <div class="card-grid">
+          <div class="card">
+            <h3>Server</h3>
+            <p>A Flask application (<code>app.py</code>) that orchestrates requirement validation, prompt construction, and communication with Ollama models.</p>
+          </div>
+          <div class="card">
+            <h3>Client Toolkit</h3>
+            <p>A Python SDK (<code>client.py</code>) for health checks, batch generation, file ingestion, and incremental result persistence.</p>
+          </div>
+          <div class="card">
+            <h3>Docs & Samples</h3>
+            <p>Extensive Markdown briefs under <code>docs/</code> and realistic requirements payloads under <code>samples/</code> to accelerate onboarding.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Quick Start</h2>
+        <p>Spin up the API and produce your first test case in minutes. Commands assume Windows PowerShell with Python 3.8+ and Ollama installed locally.</p>
+        <pre data-lang="powershell"><code class="language-powershell">cd test_case_api
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:OLLAMA_MODEL = "mistral"
+python app.py
+curl http://localhost:5000/health
+curl -X POST http://localhost:5000/generate `
+  -H "Content-Type: application/json" `
+  -d @samples/single_requirement.json</code></pre>
+        <div class="alert">
+          By default the application calls <code>http://localhost:11434/api/generate</code>. Update <code>OLLAMA_BASE_URL</code> or <code>OLLAMA_MODEL</code> in <code>.env</code> to target remote endpoints or different LLM variants.
+        </div>
+      </section>
+
+      <section>
+        <h2>Platform at a Glance</h2>
+        <div class="mermaid">
+          graph TD
+            A[User Inputs \n REST or Client SDK] -->|JSON Requirements| B(Flask API \n app.py)
+            B -->|System Prompt| C[instructions/system_instructions.md]
+            B -->|Prompt Payload| D[Ollama Service]
+            D -->|Generated Test Case| B
+            B -->|Structured Response| E(Output JSON)
+            B -->|Optional Streaming| F(Server-Sent Events)
+            E -->|Save to Disk| G[output/]
+            A -->|Samples| H[samples/*.json]
+        </div>
+      </section>
+
+      <section>
+        <h2>Recommended Reading Path</h2>
+        <div class="timeline">
+          <div class="timeline-item">
+            <strong>Step 1</strong>
+            <p>Start with <a href="architecture.html">Architecture</a> to understand the Flask blueprint, error flows, and prompt assembly.</p>
+          </div>
+          <div class="timeline-item">
+            <strong>Step 2</strong>
+            <p>Review <a href="api-guide.html">API Guide</a> for exact payload schemas, response envelopes, and status semantics.</p>
+          </div>
+          <div class="timeline-item">
+            <strong>Step 3</strong>
+            <p>Move to <a href="client-guide.html">Client SDK</a> to automate pipelines with the bundled Python client.</p>
+          </div>
+          <div class="timeline-item">
+            <strong>Step 4</strong>
+            <p>Operate at scale using streaming, file ingestion, and monitoring tips in <a href="operations.html">Operations</a>.</p>
+          </div>
+          <div class="timeline-item">
+            <strong>Step 5</strong>
+            <p>Bookmark <a href="resources.html">Resources</a> for quick links to Markdown guides, samples, and environment configuration.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Maintained by the Test Case Generator API team.</span>
+      <ul class="list-inline">
+        <li><a href="pages/architecture.html">Architecture</a></li>
+        <li><a href="pages/api-guide.html">API Reference</a></li>
+        <li><a href="pages/client-guide.html">Python Client</a></li>
+        <li><a href="pages/operations.html">Operations</a></li>
+        <li><a href="pages/resources.html">Resources</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>

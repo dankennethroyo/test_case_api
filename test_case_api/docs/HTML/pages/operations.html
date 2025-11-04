@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operations | Test Case Generator API</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="badge">Operations</span>
+      <h1 class="hero-title">Operational Playbook</h1>
+      <p class="hero-subtitle">Scale generation safely with streaming endpoints, monitoring tactics, file ingestion workflows, and troubleshooting patterns observed in <code>app.py</code>.</p>
+    </div>
+  </header>
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-links">
+        <a data-nav href="../index.html">Overview</a>
+        <a data-nav href="architecture.html">Architecture</a>
+        <a data-nav href="api-guide.html">API Guide</a>
+        <a data-nav href="client-guide.html">Client SDK</a>
+        <a data-nav href="operations.html">Operations</a>
+        <a data-nav href="resources.html">Resources</a>
+      </div>
+      <button class="theme-toggle" data-action="toggle-theme">Dark Mode</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <section>
+        <h2>Streaming Workflow</h2>
+        <p>Server-Sent Events (SSE) endpoints provide real-time progress updates, ideal for long-running batches or UI dashboards.</p>
+        <pre><code class="language-javascript">const events = new EventSource("http://localhost:5000/generate/stream");
+
+events.onmessage = (event) => {
+  const payload = JSON.parse(event.data);
+  switch (payload.type) {
+    case "start":
+      console.log(`Processing ${payload.total} requirements`);
+      break;
+    case "progress":
+      console.log(`Requirement ${payload.index} now in flight`);
+      break;
+    case "result":
+      console.log(payload.status, payload.data?.REQUIREMENTS_ID);
+      break;
+    case "complete":
+      console.log(`Finished: ${payload.successful} success, ${payload.failed} failed`);
+      events.close();
+      break;
+  }
+};</code></pre>
+        <div class="alert">
+          SSE responses omit explicit HTTP status codes after the initial handshake. Infer success from the <code>complete</code> event payload rather than relying on the HTTP response alone.
+        </div>
+      </section>
+
+      <section>
+        <h2>Health Monitoring</h2>
+        <div class="mermaid">
+          flowchart TD
+            A[Cron or Monitor] --> B[/health probe every minute/]
+            B --> C{status == healthy?}
+            C -- yes --> D[Log metrics]
+            C -- no --> E[Raise alert]
+            E --> F[Check Ollama availability]
+            F --> G{Ollama reachable?}
+            G -- no --> H[Restart or notify model host]
+            G -- yes --> I[Inspect API logs]
+        </div>
+        <p><code>/health</code> queries <code>/api/tags</code> on the Ollama host. A 503 response signals either Ollama downtime or network misconfiguration; check <code>OLLAMA_BASE_URL</code>.</p>
+      </section>
+
+      <section>
+        <h2>File Intake Safety Net</h2>
+        <p>File uploads run through a stringent validation pipeline defined inside <code>generate_from_file()</code>.</p>
+        <ul>
+          <li>Rejects missing files or empty filenames.</li>
+          <li>Ensures <code>.json</code> extension.</li>
+          <li>Validates raw size against <code>MAX_FILE_SIZE_MB</code>.</li>
+          <li>Supports arrays, <code>{"requirements": [...]}</code>, or single objects.</li>
+        </ul>
+        <pre><code class="language-python">payload = {
+    "requirements": json.load(open("samples/batch_requirements.json"))
+}
+results = client.generate_batch(payload["requirements"], model="mistral")
+</code></pre>
+      </section>
+
+      <section>
+        <h2>Timeout & Retries</h2>
+        <p>Timeouts default to 180 seconds per Ollama request. Increase <code>OLLAMA_TIMEOUT</code> when using slower models or larger prompts. On the client side, set a longer <code>timeout</code> when instantiating <code>TestCaseGeneratorClient</code>.</p>
+        <pre><code class="language-python">client = TestCaseGeneratorClient(timeout=600)
+response = client.generate(requirement, model="dolphin-mixtral")</code></pre>
+        <div class="callout">
+          <strong>Tip</strong>
+          <p>Wrap client calls in external retry logic (e.g., Tenacity) if you anticipate transient network issues. The server currently surfaces errors without retrying automatically.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Operational Checklist</h2>
+        <div class="card-grid">
+          <div class="card">
+            <h3>Before You Run</h3>
+            <p>Confirm Ollama is serving models at <code>OLLAMA_BASE_URL</code>. Pull required models using <code>ollama pull</code>.</p>
+          </div>
+          <div class="card">
+            <h3>During Execution</h3>
+            <p>Watch application logs for <code>INFO</code> entries: each requirement generates two logs (start + finish).</p>
+          </div>
+          <div class="card">
+            <h3>After Completion</h3>
+            <p>Persist the <code>results</code> array even when HTTP 207 is returned; successful entries remain valid.</p>
+          </div>
+          <div class="card">
+            <h3>Failure Recovery</h3>
+            <p>Use <code>errors</code> payloads to retry specific indices instead of resubmitting the entire batch.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Troubleshooting Playbook</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Symptom</th>
+              <th>Likely Cause</th>
+              <th>Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>HTTP 503 on <code>/health</code></td>
+              <td>Ollama process offline or base URL misconfigured.</td>
+              <td>Restart Ollama, verify <code>OLLAMA_BASE_URL</code>.</td>
+            </tr>
+            <tr>
+              <td>HTTP 400 on <code>/generate</code></td>
+              <td>Missing required fields.</td>
+              <td>Include <code>REQUIREMENTS_ID</code>, <code>DESCRIPTION</code>, <code>CATEGORY</code>.</td>
+            </tr>
+            <tr>
+              <td>HTTP 413 on <code>/generate/file</code></td>
+              <td>Upload exceeds <code>MAX_FILE_SIZE_MB</code>.</td>
+              <td>Split file into smaller fragments or raise the limit.</td>
+            </tr>
+            <tr>
+              <td>Timeout errors</td>
+              <td>Slow models or complex prompts.</td>
+              <td>Increase <code>OLLAMA_TIMEOUT</code> and client timeout.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Need more references? The Resources page links every supporting artifact.</span>
+      <ul class="list-inline">
+        <li><a href="resources.html">Resources</a></li>
+        <li><a href="api-guide.html">API Reference</a></li>
+        <li><a href="client-guide.html">Python Client</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="../assets/js/script.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: true, theme });
+  </script>
+</body>
+</html>
+
