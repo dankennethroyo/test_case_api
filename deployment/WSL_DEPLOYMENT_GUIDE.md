@@ -86,6 +86,28 @@ If Ollama is already installed and running on Windows, **skip installation** and
 curl http://localhost:11434/api/tags
 ```
 
+### How to call Ollama from WSL in NAT mode
+```bash
+
+Find Windows host IP from WSL:
+ShellWIN_HOST=$(ip route show | awk '/default/ {print $3}')echo $WIN_HOSTShow more lines
+Example: 172.26.96.1
+
+
+Curl using that IP:
+Shellcurl "http://$WIN_HOST:11434/api/tags"Show more lines
+
+
+Important: Ollama must listen on 0.0.0.0:11434 (not just 127.0.0.1):
+
+On Windows, set environment variable:
+OLLAMA_HOST=0.0.0.0:11434
+
+
+Restart Ollama service/app.
+Ensure Windows Firewall allows TCP 11434 on Private network.
+```
+
 **Benefit:** No duplication, uses your existing Windows installation and models.
 
 #### **Option B: Install Ollama in WSL (Optional)**
