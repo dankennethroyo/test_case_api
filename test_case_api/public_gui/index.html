@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🧪 Test Case Generator</h1>
+                <p class="tagline">AI-Powered System-Level Test Case Generation</p>
+            </div>
+        </header>
+
+        <main>
+            <section class="intro-section">
+                <div class="intro-card">
+                    <h2>Welcome!</h2>
+                    <p>Generate comprehensive, detailed test cases from your requirements using advanced AI. 
+                    Perfect for system-level integration and black-box testing.</p>
+                </div>
+            </section>
+
+            <section class="generator-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="single">📝 Single Requirement</button>
+                    <button class="tab-btn" data-tab="batch">📄 Upload File</button>
+                </div>
+
+                <!-- Single Requirement Tab -->
+                <div id="single" class="tab-panel active">
+                    <form id="singleForm" class="generator-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="requirementId">
+                                    Requirement ID *
+                                    <span class="help-text">Unique identifier for the requirement</span>
+                                </label>
+                                <input type="text" id="requirementId" required 
+                                       placeholder="e.g., REQ-001-01" 
+                                       pattern="[A-Z0-9\-]+"
+                                       title="Use uppercase letters, numbers, and hyphens only">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="category">
+                                    Category *
+                                    <span class="help-text">Type of requirement</span>
+                                </label>
+                                <select id="category" required>
+                                    <option value="">Select category</option>
+                                    <option value="Functional">Functional</option>
+                                    <option value="Performance">Performance</option>
+                                    <option value="Safety">Safety</option>
+                                    <option value="Reliability">Reliability</option>
+                                    <option value="Interface">Interface</option>
+                                    <option value="Security">Security</option>
+                                    <option value="Usability">Usability</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">
+                                Requirement Description *
+                                <span class="help-text">Detailed description of what needs to be tested</span>
+                            </label>
+                            <textarea id="description" rows="4" required 
+                                      placeholder="Describe the requirement in detail..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parameterCategory">
+                                Parameter Category
+                                <span class="help-text">Optional: Specific parameter or subsystem</span>
+                            </label>
+                            <input type="text" id="parameterCategory" 
+                                   placeholder="e.g., INPUT VOLTAGE, BATTERY MANAGEMENT">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="verificationPlan">
+                                Verification Plan
+                                <span class="help-text">Optional: How the requirement will be verified</span>
+                            </label>
+                            <textarea id="verificationPlan" rows="2" 
+                                      placeholder="Optional verification approach..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="generateBtn">
+                            <span class="btn-text">🚀 Generate Test Case</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Batch Upload Tab -->
+                <div id="batch" class="tab-panel">
+                    <div class="upload-section">
+                        <div class="upload-info">
+                            <h3>📤 Upload JSON File</h3>
+                            <p>Upload a JSON file containing one or more requirements. 
+                            The system will generate test cases for all requirements in the file.</p>
+                            
+                            <div class="format-example">
+                                <strong>Expected Format:</strong>
+                                <pre>{
+  "requirements": [
+    {
+      "REQUIREMENTS_ID": "REQ-001-01",
+      "DESCRIPTION": "System shall...",
+      "CATEGORY": "Functional",
+      "PARAMETER_CATEGORY": "Optional"
+    }
+  ]
+}</pre>
+                            </div>
+                        </div>
+
+                        <form id="batchForm" class="upload-form">
+                            <div class="file-upload-area" id="dropZone">
+                                <input type="file" id="fileInput" accept=".json" hidden>
+                                <div class="upload-icon">📁</div>
+                                <p class="upload-text">Drag & drop your JSON file here</p>
+                                <p class="upload-subtext">or</p>
+                                <button type="button" class="btn-secondary" id="browseBtn">
+                                    Browse Files
+                                </button>
+                                <p class="file-limits">Maximum file size: 10MB</p>
+                            </div>
+                            
+                            <div id="fileInfo" class="file-info" style="display: none;">
+                                <span id="fileName"></span>
+                                <button type="button" id="removeFile" class="btn-remove">✕</button>
+                            </div>
+
+                            <button type="submit" class="btn-primary" id="uploadBtn" disabled>
+                                <span class="btn-text">🚀 Generate Test Cases</span>
+                                <span class="spinner" style="display: none;"></span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <div class="results-header">
+                    <h2>📊 Results</h2>
+                    <div class="results-actions">
+                        <button id="copyBtn" class="btn-action">📋 Copy</button>
+                        <button id="downloadBtn" class="btn-action">💾 Download JSON</button>
+                        <button id="downloadTxtBtn" class="btn-action">📄 Download Text</button>
+                        <button id="clearBtn" class="btn-action">🗑️ Clear</button>
+                    </div>
+                </div>
+
+                <div id="resultsStats" class="results-stats"></div>
+                
+                <div id="resultsContent" class="results-content"></div>
+            </section>
+
+            <!-- Progress Indicator -->
+            <div id="progressOverlay" class="progress-overlay" style="display: none;">
+                <div class="progress-card">
+                    <div class="progress-spinner"></div>
+                    <h3 id="progressTitle">Generating Test Cases...</h3>
+                    <p id="progressStatus">Please wait, this may take a moment</p>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <p id="progressDetail" class="progress-detail"></p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Test Case Generator | Powered by AI</p>
+            <p class="footer-links">
+                <a href="#" onclick="showHelp(); return false;">Help</a> • 
+                <a href="#" onclick="showAbout(); return false;">About</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('helpModal')">&times;</span>
+            <h2>📖 Help Guide</h2>
+            
+            <h3>How to Use</h3>
+            <ol>
+                <li><strong>Single Requirement:</strong> Fill in the form with your requirement details and click "Generate Test Case"</li>
+                <li><strong>Batch Upload:</strong> Upload a JSON file with multiple requirements for batch processing</li>
+            </ol>
+
+            <h3>Tips for Best Results</h3>
+            <ul>
+                <li>Be specific and detailed in your requirement descriptions</li>
+                <li>Include measurable criteria and expected behaviors</li>
+                <li>Use clear, technical language</li>
+                <li>Specify relevant parameters and constraints</li>
+            </ul>
+
+            <h3>JSON Format</h3>
+            <p>For batch uploads, use this structure:</p>
+            <pre>{
+  "requirements": [
+    {
+      "REQUIREMENTS_ID": "REQ-001",
+      "DESCRIPTION": "Description here",
+      "CATEGORY": "Functional",
+      "PARAMETER_CATEGORY": "Optional",
+      "VERIFICATION_PLAN": "Optional"
+    }
+  ]
+}</pre>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('aboutModal')">&times;</span>
+            <h2>ℹ️ About</h2>
+            
+            <p><strong>Test Case Generator</strong> is an AI-powered tool that generates comprehensive, 
+            detailed system-level integration and black-box test cases from software requirements.</p>
+
+            <h3>Features</h3>
+            <ul>
+                <li>System-level integration testing focus</li>
+                <li>Black-box testing approach</li>
+                <li>Detailed test steps and expected results</li>
+                <li>Edge case identification</li>
+                <li>Single and batch processing</li>
+            </ul>
+
+            <h3>Generated Test Cases Include:</h3>
+            <ul>
+                <li>Test case title and objective</li>
+                <li>Preconditions and setup</li>
+                <li>Detailed test steps</li>
+                <li>Expected results and pass/fail criteria</li>
+                <li>Postconditions</li>
+                <li>Test data and parameters</li>
+                <li>Edge cases and boundary conditions</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>

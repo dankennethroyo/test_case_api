@@ -1,0 +1,1 @@
+wsl --import Ubuntu2204 "D:\_VM\WSL\Ubuntu" "D:\_VM\Resources\ubuntu-jammy-wsl-amd64-ubuntu22.04lts.rootfs.tar" --version 2

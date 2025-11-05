@@ -11,7 +11,7 @@ Generates detailed system-level integration/black-box test cases using Ollama
 
 
 import requests, os, logging, json
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -36,6 +36,9 @@ SYSTEM_INSTRUCTION_FILE = Path(__file__).parent / "instructions" / "system_instr
 MAX_FILE_SIZE_MB        = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
 MAX_FILE_BYTES          = MAX_FILE_SIZE_MB * 1024 * 1024
 debug_mode              = os.getenv("DEBUG_MODE", False)
+ENVIRONMENT             = os.getenv("ENVIRONMENT", "development")  # development or production
+ADMIN_GUI_PATH          = Path(__file__).parent / "admin_gui"
+PUBLIC_GUI_PATH         = Path(__file__).parent / "public_gui"
 
 if debug_mode == True:
     print(f"          OLLAMA_BASE_URL: {OLLAMA_BASE_URL}")
@@ -227,6 +230,33 @@ def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str =
     
     return output
 
+
+# ==================== API Endpoints ====================
+
+# ==================== GUI Routes ====================
+@app.route('/admin')
+def admin_dashboard():
+    """Serve admin dashboard - only in development mode"""
+    if ENVIRONMENT.lower() != "development":
+        return jsonify({"error": "Admin interface not available in production"}), 403
+    return send_from_directory(ADMIN_GUI_PATH, 'index.html')
+
+@app.route('/admin/<path:filename>')
+def admin_static(filename):
+    """Serve admin static files - only in development mode"""
+    if ENVIRONMENT.lower() != "development":
+        return jsonify({"error": "Admin interface not available in production"}), 403
+    return send_from_directory(ADMIN_GUI_PATH, filename)
+
+@app.route('/client')
+def client_interface():
+    """Serve public client interface"""
+    return send_from_directory(PUBLIC_GUI_PATH, 'index.html')
+
+@app.route('/client/<path:filename>')
+def client_static(filename):
+    """Serve client static files"""
+    return send_from_directory(PUBLIC_GUI_PATH, filename)
 
 # ==================== API Endpoints ====================
 #just show the local OLLAMA API is active
