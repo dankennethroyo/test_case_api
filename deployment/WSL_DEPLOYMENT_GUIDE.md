@@ -476,9 +476,9 @@ From Windows, your WSL services are accessible via:
 - `http://localhost:5000` (direct to Flask)
 - `http://127.0.0.1`
 
-### Network Access
+### Network Access (Mirrored Mode - Default WSL 2.0+)
 
-To access from other computers on your network:
+If you're using WSL 2.0+ with mirrored networking (default), WSL shares the same network as Windows:
 
 1. **Find your Windows IP address:**
 
@@ -499,6 +499,9 @@ New-NetFirewallRule -DisplayName "WSL HTTPS" -Direction Inbound -Protocol TCP -L
 
 # Allow port 5000 (Flask direct access)
 New-NetFirewallRule -DisplayName "WSL Flask" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow
+
+# Or for custom port (e.g., 5005)
+New-NetFirewallRule -DisplayName "WSL Flask Custom" -Direction Inbound -Protocol TCP -LocalPort 5005 -Action Allow
 ```
 
 3. **Access from other computers:**
@@ -506,6 +509,425 @@ New-NetFirewallRule -DisplayName "WSL Flask" -Direction Inbound -Protocol TCP -L
 ```
 http://YOUR_WINDOWS_IP
 http://YOUR_WINDOWS_IP:5000
+http://YOUR_WINDOWS_IP:5005
+```
+
+---
+
+## 🔀 WSL NAT Network Configuration (WSL 1.x or Legacy Mode)
+
+If your WSL is configured with **NAT networking mode** (common in WSL 1.x or older WSL2 configurations), WSL has its own internal IP address and requires port forwarding to expose services to the Windows network.
+
+### Check Your WSL Network Mode
+
+```powershell
+# In PowerShell - Check WSL version
+wsl --version
+
+# In WSL - Check your IP
+ip addr show eth0
+
+# In Windows - Check if WSL IP is different from Windows IP
+ipconfig
+```
+
+**If WSL has a different IP (e.g., 172.x.x.x) than Windows, you're using NAT mode.**
+
+### Step 1: Configure Ollama to Listen on All Interfaces (Windows)
+
+When using NAT mode, Ollama on Windows needs to listen on all network interfaces:
+
+```powershell
+# In PowerShell as Administrator
+# Set Ollama to listen on all interfaces
+[System.Environment]::SetEnvironmentVariable('OLLAMA_HOST', '0.0.0.0:11434', 'User')
+
+# Restart Ollama (close from system tray and restart, or reboot)
+# Verify the environment variable
+[System.Environment]::GetEnvironmentVariable('OLLAMA_HOST', 'User')
+```
+
+**Allow Ollama through Windows Firewall:**
+
+```powershell
+# Allow Ollama port for private networks
+New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 11434 -Action Allow -Profile Private
+```
+
+### Step 2: Configure WSL Application for NAT Mode
+
+**Option A: Use the Auto-Configuration Script (Recommended)**
+
+```bash
+# In WSL, navigate to application directory
+cd /opt/test-case-api
+
+# Download or create the generate-env.sh script
+cat > generate-env.sh << 'EOF'
+#!/usr/bin/env sh
+# Generate a .env file for WSL2 NAT mode with the correct Windows host IP.
+# Usage: ./generate-env.sh [path-to-.env]
+# Default output is ./.env
+
+set -eu
+
+OUTFILE="${1:-.env}"
+
+# 1) Discover the Windows host (gateway) IP as seen from WSL (NAT mode)
+WIN_HOST="$(ip route show | awk '/default/ {print $3}' || true)"
+
+if [ -z "${WIN_HOST}" ]; then
+  echo "ERROR: Could not determine Windows host IP from 'ip route'. Are you inside WSL?" >&2
+  exit 1
+fi
+
+# 2) Backup existing .env if present
+if [ -f "$OUTFILE" ]; then
+  ts="$(date +%Y%m%d-%H%M%S)"
+  cp -f "$OUTFILE" "${OUTFILE}.bak-${ts}"
+  echo "Backed up existing ${OUTFILE} -> ${OUTFILE}.bak-${ts}"
+fi
+
+# 3) Write the new .env (unquoted heredoc to allow $WIN_HOST expansion)
+cat > "$OUTFILE" <<ENVEOF
+# Test Case Generator API Configuration
+
+# Ollama Configuration
+OLLAMA_BASE_URL=http://${WIN_HOST}:11434
+OLLAMA_MODEL=llama3:latest
+OLLAMA_TIMEOUT=180
+
+# Flask Configuration
+HOST=0.0.0.0
+PORT=5005
+FLASK_DEBUG=False
+DEBUG_MODE=False
+
+# Environment Type (development or production)
+ENVIRONMENT=production
+
+# File Upload Configuration
+MAX_FILE_SIZE_MB=10
+
+# Logging
+LOG_LEVEL=INFO
+ENVEOF
+
+echo "Wrote ${OUTFILE} with OLLAMA_BASE_URL=http://${WIN_HOST}:11434"
+
+# 4) Optional quick connectivity check to Ollama
+if command -v curl >/dev/null 2>&1; then
+  echo "Testing connectivity to Ollama at http://${WIN_HOST}:11434/api/tags ..."
+  if curl -fsS --max-time 2 "http://${WIN_HOST}:11434/api/tags" >/dev/null; then
+    echo "✅ Ollama API reachable from WSL."
+  else
+    echo "⚠️  Could not reach Ollama API. Make sure on Windows:"
+    echo "    - Set user env var: OLLAMA_HOST=0.0.0.0:11434"
+    echo "    - Restart the Ollama app/service"
+    echo "    - Allow TCP 11434 on Private network in Windows Firewall"
+  fi
+fi
+EOF
+
+# Make executable
+chmod +x generate-env.sh
+
+# Run the script to generate .env with correct Windows IP
+./generate-env.sh
+
+# Verify the generated configuration
+cat .env
+```
+
+**Option B: Manual Configuration**
+
+```bash
+# In WSL, find the Windows host IP
+WIN_HOST=$(ip route show | awk '/default/ {print $3}')
+echo "Windows Host IP: $WIN_HOST"
+
+# Edit .env manually
+cd /opt/test-case-api
+nano .env
+```
+
+Update these values:
+```bash
+OLLAMA_BASE_URL=http://172.26.128.1:11434  # Use your actual Windows host IP
+PORT=5005  # Custom port (change as needed)
+HOST=0.0.0.0  # Listen on all interfaces
+```
+
+### Step 3: Update Systemd Service for Custom Port
+
+If you're using a custom port (e.g., 5005):
+
+```bash
+# Edit the systemd service
+sudo nano /etc/systemd/system/test-case-api.service
+```
+
+Update the `ExecStart` line:
+
+```ini
+[Unit]
+Description=Test Case API Server
+After=network.target
+
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/opt/test-case-api
+Environment="PATH=/opt/test-case-api/venv/bin"
+ExecStart=/opt/test-case-api/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:5005 --timeout 300 app:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Reload and restart:**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart test-case-api
+sudo systemctl status test-case-api
+```
+
+### Step 4: Configure Windows Port Forwarding (NAT Mode)
+
+To expose WSL services to the Windows domain network, you need to set up port forwarding:
+
+**Method 1: PowerShell Port Proxy (Persistent)**
+
+```powershell
+# Run PowerShell as Administrator
+
+# Get your WSL IP address
+wsl hostname -I
+# Example output: 172.26.134.227
+
+# Set variables
+$wslIP = "172.26.134.227"  # Replace with your actual WSL IP
+$port = 5005
+
+# Add port forwarding rule
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port
+
+# Verify the rule was added
+netsh interface portproxy show v4tov4
+
+# Configure Windows Firewall to allow the port
+New-NetFirewallRule -DisplayName "WSL Test Case API" -Direction Inbound -Protocol TCP -LocalPort $port -Action Allow -Profile Domain,Private
+
+# Optional: Allow on Public profile if needed (less secure)
+# New-NetFirewallRule -DisplayName "WSL Test Case API Public" -Direction Inbound -Protocol TCP -LocalPort $port -Action Allow -Profile Public
+```
+
+**Method 2: Automated Script for Dynamic WSL IP**
+
+Create a PowerShell script to automatically update port forwarding (useful since WSL IP can change):
+
+```powershell
+# Create the script file
+# Save as: C:\Scripts\wsl-port-forward.ps1
+
+# Get WSL IP dynamically (pick the first IPv4 if multiple are returned)
+$wslIP = ((wsl.exe hostname -I).Trim() -split '\s+') |
+         Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' } |
+         Select-Object -First 1
+
+if (-not $wslIP) {
+    Write-Error "Could not determine a valid WSL IPv4 address."
+    exit 1
+}
+
+$port = 5005
+
+# Remove existing port proxy rule (if any)
+netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=$port | Out-Null
+
+# Add new port proxy rule with current WSL IP
+$null = netsh interface portproxy add v4tov4 `
+    listenaddress=0.0.0.0 listenport=$port `
+    connectaddress=$wslIP connectport=$port
+
+# Optional: ensure a Windows Firewall rule exists (Domain/Private only)
+if (-not (Get-NetFirewallRule -DisplayName "WSL Port $port" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "WSL Port $port" `
+        -Direction Inbound -Protocol TCP -LocalPort $port `
+        -Action Allow -Profile Domain,Private | Out-Null
+}
+
+# Friendly status line (no HTML entities; safe variable formatting)
+Write-Host ("Port forwarding configured: 0.0.0.0:{0} -> {1}:{0}" -f $port, $wslIP)
+
+# Verify
+netsh interface portproxy show v4tov4
+
+```
+
+**Run this script on Windows startup:**
+
+```powershell
+# Create a scheduled task to run on startup (as Administrator)
+$action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-ExecutionPolicy Bypass -File C:\Scripts\wsl-port-forward.ps1"
+$trigger = New-ScheduledTaskTrigger -AtStartup
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+
+Register-ScheduledTask -TaskName "WSL Port Forward" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Forward ports from Windows to WSL for Test Case API"
+```
+
+### Step 5: Verify NAT Configuration
+
+**From WSL:**
+
+```bash
+# Test Ollama connectivity from WSL
+WIN_HOST=$(ip route show | awk '/default/ {print $3}')
+curl http://$WIN_HOST:11434/api/tags
+
+# Test local service
+curl http://localhost:5005/health
+```
+
+**From Windows PowerShell:**
+
+```powershell
+# Test via localhost
+curl http://localhost:5005/health
+
+# Get Windows IP
+ipconfig
+
+# Test via Windows IP (from another machine on the network)
+curl http://YOUR_WINDOWS_IP:5005/health
+```
+
+**From Another Computer on Domain Network:**
+
+```powershell
+# Replace with actual Windows server IP
+curl http://192.168.1.100:5005/health
+
+# Or open in browser
+# http://192.168.1.100:5005/client
+```
+
+### Step 6: Troubleshooting NAT Mode
+
+**WSL IP Changed After Reboot:**
+
+```powershell
+# In PowerShell as Administrator
+# Remove old port proxy rule
+netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=5005
+
+# Get new WSL IP
+wsl hostname -I
+
+# Add new rule with updated IP
+$wslIP = "NEW_WSL_IP"  # Replace with actual IP
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5005 connectaddress=$wslIP connectport=5005
+```
+
+**Ollama Not Accessible from WSL:**
+
+```bash
+# In WSL, check Windows host IP
+ip route show | grep default
+
+# Test connectivity
+WIN_HOST=$(ip route show | awk '/default/ {print $3}')
+curl -v http://$WIN_HOST:11434/api/tags
+
+# If fails, check Windows:
+```
+
+```powershell
+# In PowerShell, verify Ollama is listening on 0.0.0.0
+netstat -an | findstr "11434"
+
+# Should show: 0.0.0.0:11434 (not 127.0.0.1:11434)
+
+# Verify firewall rule
+Get-NetFirewallRule -DisplayName "Ollama API"
+
+# Test Ollama from Windows
+curl http://localhost:11434/api/tags
+```
+
+**Port Forwarding Not Working:**
+
+```powershell
+# Verify port proxy rules
+netsh interface portproxy show v4tov4
+
+# Verify firewall rules
+Get-NetFirewallRule -DisplayName "WSL Test Case API" | Select-Object Name, Enabled, Profile, Direction
+
+# Test if port is listening on Windows
+netstat -an | findstr "5005"
+
+# Check if WSL service is running
+wsl -d Ubuntu-22.04 -- systemctl status test-case-api
+```
+
+**Domain Network Access Blocked:**
+
+```powershell
+# Ensure firewall rule allows Domain profile
+Set-NetFirewallRule -DisplayName "WSL Test Case API" -Profile Domain,Private -Enabled True
+
+# Or recreate with Domain profile explicitly
+New-NetFirewallRule -DisplayName "WSL Test Case API Domain" -Direction Inbound -Protocol TCP -LocalPort 5005 -Action Allow -Profile Domain
+```
+
+### NAT Mode Quick Reference
+
+```powershell
+# ===== Windows Commands (PowerShell as Administrator) =====
+
+# Get WSL IP
+wsl hostname -I
+
+# Add port forwarding
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5005 connectaddress=WSL_IP connectport=5005
+
+# List port forwarding rules
+netsh interface portproxy show v4tov4
+
+# Remove port forwarding
+netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=5005
+
+# Add firewall rule
+New-NetFirewallRule -DisplayName "WSL Test Case API" -Direction Inbound -Protocol TCP -LocalPort 5005 -Action Allow -Profile Domain,Private
+
+# List firewall rules
+Get-NetFirewallRule -DisplayName "*WSL*"
+```
+
+```bash
+# ===== WSL Commands =====
+
+# Get Windows host IP
+ip route show | grep default | awk '{print $3}'
+
+# Test Ollama connectivity
+WIN_HOST=$(ip route show | awk '/default/ {print $3}')
+curl http://$WIN_HOST:11434/api/tags
+
+# Regenerate .env with current Windows IP
+cd /opt/test-case-api
+./generate-env.sh
+
+# Restart service
+sudo systemctl restart test-case-api
+
+# Check service status
+sudo systemctl status test-case-api
 ```
 
 ---
@@ -700,6 +1122,70 @@ sudo kill -9 <PID>
 sudo netstat -tlnp | grep 5000
 
 # Should show: 0.0.0.0:5000 (not 127.0.0.1:5000)
+```
+
+**If using WSL NAT mode:**
+
+```powershell
+# In PowerShell, verify port forwarding is configured
+netsh interface portproxy show v4tov4
+
+# Should show your forwarding rule
+# If not, add it:
+$wslIP = (wsl hostname -I).Trim()
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5005 connectaddress=$wslIP connectport=5005
+
+# Verify Windows firewall allows the port
+Get-NetFirewallRule -DisplayName "WSL Test Case API"
+
+# Test from Windows
+curl http://localhost:5005/health
+```
+
+### Cannot Access from Domain Network
+
+```powershell
+# In PowerShell as Administrator
+# Ensure firewall rule includes Domain profile
+Set-NetFirewallRule -DisplayName "WSL Test Case API" -Profile Domain,Private -Enabled True
+
+# Or create new rule with Domain profile
+New-NetFirewallRule -DisplayName "WSL Test Case API Domain" -Direction Inbound -Protocol TCP -LocalPort 5005 -Action Allow -Profile Domain
+
+# Verify port forwarding allows external connections (listenaddress=0.0.0.0)
+netsh interface portproxy show v4tov4
+
+# Test from another machine
+# curl http://YOUR_WINDOWS_IP:5005/health
+```
+
+### WSL IP Address Changed (NAT Mode)
+
+This commonly happens after Windows reboot or WSL restart:
+
+```powershell
+# In PowerShell as Administrator
+# Remove old port forwarding rule
+netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=5005
+
+# Get new WSL IP
+$wslIP = (wsl hostname -I).Trim()
+Write-Host "New WSL IP: $wslIP"
+
+# Add new forwarding rule
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5005 connectaddress=$wslIP connectport=5005
+
+# Verify
+netsh interface portproxy show v4tov4
+```
+
+```bash
+# In WSL, regenerate .env with new Windows host IP
+cd /opt/test-case-api
+./generate-env.sh
+
+# Restart service
+sudo systemctl restart test-case-api
 ```
 
 ---
@@ -958,22 +1444,44 @@ If you encounter issues:
 
 Use this checklist to verify your deployment:
 
+**Basic Setup:**
 - [ ] WSL2 installed and Ubuntu running
 - [ ] Python 3, pip, venv installed
 - [ ] Application files copied to `/opt/test-case-api/`
 - [ ] Python virtual environment created and activated
 - [ ] Dependencies installed (flask, flask-cors, requests, python-dotenv, gunicorn)
+
+**Configuration:**
 - [ ] `.env` file configured with correct values
 - [ ] Ollama accessible from WSL (`curl http://localhost:11434/api/tags`)
 - [ ] Correct model specified in `.env` (check with `ollama list` on Windows)
 - [ ] Application starts without errors (`python app.py`)
-- [ ] Health check responds (`curl http://localhost:5000/health`)
+- [ ] Health check responds (`curl http://localhost:5000/health` or custom port)
+
+**Service Setup:**
 - [ ] Systemd service file created (`/etc/systemd/system/test-case-api.service`)
 - [ ] Service enabled and started (`sudo systemctl enable test-case-api`)
 - [ ] Service running successfully (`sudo systemctl status test-case-api`)
-- [ ] Client GUI accessible (http://localhost:5000/client)
-- [ ] (Optional) Nginx configured and running
-- [ ] (Optional) SSL certificates configured
+- [ ] Client GUI accessible (http://localhost:5000/client or custom port)
 - [ ] Logs are being generated (`sudo journalctl -u test-case-api -n 10`)
+
+**Network Access (if using NAT mode):**
+- [ ] Determined WSL network mode (mirrored vs NAT)
+- [ ] (NAT) Set Windows environment variable: `OLLAMA_HOST=0.0.0.0:11434`
+- [ ] (NAT) Restarted Ollama on Windows
+- [ ] (NAT) Created/ran `generate-env.sh` script for dynamic Windows IP
+- [ ] (NAT) Verified `.env` has correct Windows host IP for Ollama
+- [ ] (NAT) Updated systemd service with custom port (if using port 5005)
+- [ ] (NAT) Configured Windows port forwarding (`netsh interface portproxy`)
+- [ ] (NAT) Added Windows firewall rule for custom port (Domain/Private profiles)
+- [ ] (NAT) Tested access from Windows: `curl http://localhost:5005/health`
+- [ ] (NAT) Tested access from domain network: `curl http://WINDOWS_IP:5005/health`
+- [ ] (NAT) Created scheduled task for port forwarding on Windows startup (optional)
+
+**Optional Enhancements:**
+- [ ] Nginx configured and running
+- [ ] SSL certificates configured
+- [ ] Rate limiting configured
+- [ ] Monitoring and alerting set up
 
 **Your deployment is now Docker-free and license-worry-free!** 🚀
