@@ -1,1 +1,10 @@
 wsl --import Ubuntu2204 "D:\_VM\WSL\Ubuntu" "D:\_VM\Resources\ubuntu-jammy-wsl-amd64-ubuntu22.04lts.rootfs.tar" --version 2
+
+
+on start update
+# 1) Create a user (replace dan with your username)
+adduser dan
+
+# 2) Give it sudo privileges (Ubuntu's 'sudo' group)
+usermod -aG sudo dan
+
