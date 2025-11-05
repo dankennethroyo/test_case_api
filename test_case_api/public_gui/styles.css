@@ -28,6 +28,17 @@ body {
     line-height: 1.6;
 }
 
+/* Emoji Font Support */
+.logo h1,
+.tab-btn,
+.btn-primary,
+.btn-action,
+.upload-icon,
+.results-header h2,
+.modal-content h2 {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -47,12 +58,14 @@ header h1 {
     font-size: 36px;
     font-weight: 700;
     margin-bottom: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .tagline {
     font-size: 16px;
     opacity: 0.95;
     font-weight: 300;
+    letter-spacing: 0.3px;
 }
 
 main {
@@ -68,17 +81,20 @@ main {
     padding: 30px;
     border-radius: 12px;
     border-left: 4px solid var(--primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .intro-card h2 {
     color: var(--dark);
     margin-bottom: 15px;
     font-size: 24px;
+    font-weight: 700;
 }
 
 .intro-card p {
     color: var(--text);
     font-size: 16px;
+    line-height: 1.7;
 }
 
 .generator-section {
@@ -106,6 +122,7 @@ main {
     color: var(--text);
     transition: all 0.3s ease;
     border-bottom: 3px solid transparent;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .tab-btn:hover {
@@ -165,6 +182,41 @@ main {
     margin-top: 2px;
 }
 
+/* Custom Radio Button Styling */
+.form-group input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.form-group label[for*="Single"],
+.form-group label[for*="Upload"] {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 15px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.form-group label[for*="Single"]:hover,
+.form-group label[for*="Upload"]:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.form-group input[type="radio"]:checked + label,
+.form-group label:has(input[type="radio"]:checked) {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    font-weight: 600;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
@@ -176,6 +228,41 @@ main {
     font-family: inherit;
     transition: all 0.3s ease;
     background: white;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.form-group input:hover:not(:focus),
+.form-group select:hover:not(:focus),
+.form-group textarea:hover:not(:focus) {
+    border-color: #cbd5e1;
+}
+
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.form-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 40px;
+    cursor: pointer;
 }
 
 .form-group input:focus,
@@ -206,6 +293,8 @@ main {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
+    margin-top: 10px;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -213,9 +302,14 @@ main {
     box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
 .btn-primary:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
 }
 
 .btn-secondary {
@@ -228,11 +322,18 @@ main {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .btn-secondary:hover {
     background: var(--primary);
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
 }
 
 .upload-section {
@@ -258,6 +359,11 @@ main {
     border-left: 3px solid var(--info);
 }
 
+.format-example strong {
+    color: var(--dark);
+    font-weight: 700;
+}
+
 .format-example pre {
     background: var(--dark);
     color: #f1f5f9;
@@ -266,7 +372,8 @@ main {
     overflow-x: auto;
     font-size: 13px;
     margin-top: 10px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Courier New', 'Consolas', monospace;
+    line-height: 1.5;
 }
 
 .file-upload-area {
@@ -287,6 +394,7 @@ main {
 .upload-icon {
     font-size: 48px;
     margin-bottom: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .upload-text {
@@ -362,6 +470,8 @@ main {
 .results-header h2 {
     color: var(--dark);
     font-size: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
+    font-weight: 700;
 }
 
 .results-actions {
@@ -379,12 +489,19 @@ main {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .btn-action:hover {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.btn-action:active {
+    transform: translateY(0);
 }
 
 .results-stats {
@@ -610,12 +727,15 @@ footer p {
     color: var(--dark);
     margin-bottom: 20px;
     font-size: 26px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif;
+    font-weight: 700;
 }
 
 .modal-content h3 {
     color: var(--dark);
     margin: 20px 0 10px;
     font-size: 18px;
+    font-weight: 600;
 }
 
 .modal-content pre {
@@ -625,6 +745,18 @@ footer p {
     border-radius: 6px;
     overflow-x: auto;
     font-size: 13px;
+    line-height: 1.5;
+}
+
+.modal-content ul,
+.modal-content ol {
+    margin-left: 25px;
+    margin-bottom: 15px;
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+    line-height: 1.6;
 }
 
 /* Responsive Design */

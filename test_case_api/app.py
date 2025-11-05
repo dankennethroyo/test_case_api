@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from dotenv import load_dotenv                  # Load environment variables from .env file  
 
-#load_dotenv()                                   # Load .env file
+load_dotenv()                                   # Load .env file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

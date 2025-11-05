@@ -1,5 +1,5 @@
 // Admin Dashboard JavaScript
-const API_BASE = localStorage.getItem('apiBaseUrl') || 'http://localhost:5000';
+const API_BASE = window.location.origin;
 let activityLog = [];
 
 // Initialize dashboard

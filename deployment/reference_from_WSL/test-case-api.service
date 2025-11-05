@@ -1,0 +1,15 @@
+[Unit]
+Description=Test Case API Server
+After=network.target
+
+[Service]
+Type=simple
+User=dk
+WorkingDirectory=/opt/test-case-api
+Environment="PATH=/opt/test-case-api/venv/bin"
+ExecStart=/opt/test-case-api/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:5005 --timeout 300 app:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
