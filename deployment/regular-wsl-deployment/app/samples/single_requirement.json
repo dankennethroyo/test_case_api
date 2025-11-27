@@ -1,0 +1,10 @@
+{
+  "PARAMETER_CATEGORY": "INPUT VOLTAGE",
+  "PARENT_ID": "REQ-001",
+  "REQUIREMENTS_ID": "REQ-001-01",
+  "DESCRIPTION": "The input voltage shall be sensed by the MCU with a dedicated ADC line.",
+  "CATEGORY": "Functional",
+  "VERIFICATION_PLAN": "Test (Functional)",
+  "VALIDATION_CRITERIA": "Measure ADC input voltage reading vs applied voltage.",
+  "Test_Case": ""
+}

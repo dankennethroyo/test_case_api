@@ -1,0 +1,242 @@
+# Test Case API - Client Tools Package
+
+This package contains client-side tools for working with the Test Case Generator API.
+
+## 📦 Package Contents
+
+### 1. **client.py** - API Client
+Python client for programmatic access to the Test Case Generator API.
+
+**Features:**
+- Single test case generation
+- Batch test case generation
+- Generate from JSON files
+- Health checks and model listing
+- Incremental saving for large batches
+
+**Usage:**
+```bash
+python client.py
+```
+
+### 2. **transform_requirements.py** - Excel to JSON/CSV Converter
+Converts requirement documents from Excel to JSON/CSV format for API consumption.
+
+**Features:**
+- Reads Excel requirement documents
+- Extracts relevant columns
+- Exports to JSON and CSV formats
+- Removes commas from strings for CSV compatibility
+
+**Usage:**
+```bash
+# Display preview only
+python transform_requirements.py --file Requirement_Document.xlsx
+
+# Generate output files
+python transform_requirements.py --file Requirement_Document.xlsx --output
+```
+
+### 3. **convert_results.py** - Test Case Results Converter
+Converts generated test cases from JSON to various formats.
+
+**Features:**
+- Individual TXT files per requirement
+- Individual Markdown files per requirement
+- Single CSV file with all test cases
+- Structured field parsing
+
+**Usage:**
+```bash
+# Convert default output
+python convert_results.py
+
+# Convert specific file
+python convert_results.py path/to/results.json
+```
+
+## 📋 Requirements
+
+### Python Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+**Required packages:**
+- `requests` - HTTP client for API calls
+- `python-dotenv` - Environment variable management
+- `pandas` - Excel/CSV processing
+- `openpyxl` - Excel file reading
+
+## 🔧 Configuration
+
+Create a `.env` file in this directory:
+
+```env
+# API Configuration
+API_SERVER=http://localhost:8009
+OLLAMA_MODEL=phi4:14b
+
+# File Paths
+TARGET_FILE=samples/batch_requirements.json
+TARGET_FILE_NAME=batch_requirements.json
+
+# Debug Mode
+DEBUG_MODE=False
+```
+
+## 📁 Directory Structure
+
+```
+client_tools/
+├── README.md                      # This file
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Example environment configuration
+├── client.py                      # API client
+├── transform_requirements.py     # Excel to JSON/CSV converter
+├── convert_results.py            # Results converter
+├── samples/                       # Sample requirement files
+│   ├── single_requirement.json
+│   ├── batch_requirements.json
+│   └── sample_w_model.json
+├── templates/                     # Excel templates
+│   └── Requirement_Template.xlsx
+└── output/                        # Generated outputs (auto-created)
+    └── converted/                 # Converted results (auto-created)
+```
+
+## 🚀 Quick Start
+
+### 1. Transform Excel to JSON
+```bash
+# Prepare your requirements
+python transform_requirements.py --file my_requirements.xlsx --output
+
+# This creates:
+# - my_requirements.json (for API)
+# - my_requirements.csv (for review)
+```
+
+### 2. Generate Test Cases
+```bash
+# Edit .env to point to your JSON file
+# Set TARGET_FILE=my_requirements.json
+
+# Run generation
+python client.py
+
+# Output saved to: output/my_requirements_phi414b.json
+```
+
+### 3. Convert Results
+```bash
+# Convert to multiple formats
+python convert_results.py output/my_requirements_phi414b.json
+
+# Creates:
+# - converted/my_requirements_phi414b_TIMESTAMP/txt/*.txt
+# - converted/my_requirements_phi414b_TIMESTAMP/md/*.md
+# - converted/my_requirements_phi414b_TIMESTAMP/csv/*.csv
+```
+
+## 📊 Excel Template Format
+
+Your Excel file should have these columns:
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| REQUIREMENTS_ID | Yes | Unique requirement identifier |
+| DESCRIPTION | Yes | Requirement description |
+| CATEGORY | Yes | Requirement category (Functional, Performance, etc.) |
+| PARAMETER_CATEGORY | No | Parameter grouping |
+| PARENT_ID | No | Parent requirement ID |
+| VERIFICATION_PLAN | No | How to verify |
+| VALIDATION_CRITERIA | No | Validation criteria |
+| Test_Case | No | Generated test case (output) |
+
+## 🔗 API Endpoints
+
+The client connects to these endpoints:
+
+- `GET /health` - Health check
+- `GET /models` - List available models
+- `GET /instructions` - Get system instructions
+- `POST /instructions` - Update system instructions
+- `POST /generate` - Generate single test case
+- `POST /generate/batch` - Generate batch test cases
+
+## 💡 Examples
+
+### Example 1: Single Test Case
+```python
+from client import TestCaseGeneratorClient
+
+client = TestCaseGeneratorClient()
+
+requirement = {
+    "REQUIREMENTS_ID": "REQ-001",
+    "DESCRIPTION": "System shall validate user input",
+    "CATEGORY": "Functional"
+}
+
+result = client.generate(requirement)
+print(result.test_case)
+```
+
+### Example 2: Batch Generation
+```python
+requirements = [
+    {"REQUIREMENTS_ID": "REQ-001", "DESCRIPTION": "Test 1", "CATEGORY": "Functional"},
+    {"REQUIREMENTS_ID": "REQ-002", "DESCRIPTION": "Test 2", "CATEGORY": "Performance"}
+]
+
+results = client.generate_batch(requirements)
+client.save_results(results, "output/batch.json")
+```
+
+### Example 3: Generate from File
+```python
+results = client.generate_from_file(
+    "samples/batch_requirements.json",
+    model="phi4:14b",
+    incremental_save=True,
+    output_file="output/results.json"
+)
+```
+
+## 🆘 Troubleshooting
+
+### Connection Refused
+```bash
+# Check API is running
+curl http://localhost:8009/health
+
+# Verify .env API_SERVER setting
+cat .env | grep API_SERVER
+```
+
+### Excel File Not Found
+```bash
+# Check file path
+ls -la *.xlsx
+
+# Use absolute path
+python transform_requirements.py --file /full/path/to/file.xlsx --output
+```
+
+### JSON Decode Error
+```bash
+# Validate JSON
+python -m json.tool samples/batch_requirements.json
+```
+
+## 📞 Support
+
+For issues or questions:
+1. Check the API server is running: `http://localhost:8009/health`
+2. Verify your `.env` configuration
+3. Check the output logs for detailed error messages
+
+---
+
+**Happy Testing!** 🎉

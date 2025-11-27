@@ -1,0 +1,34 @@
+{
+  "requirements": [
+    {
+        "PARAMETER_CATEGORY": "INPUT VOLTAGE",
+        "PARENT_ID": "REQ-001",
+        "REQUIREMENTS_ID": "REQ-001-01",
+        "DESCRIPTION": "The input voltage shall be sensed by the MCU with a dedicated ADC line.",
+        "CATEGORY": "Functional",
+        "VERIFICATION_PLAN": "Test (Functional)",
+        "VALIDATION_CRITERIA": "Measure ADC input voltage reading vs applied voltage.",
+        "Test_Case": ""
+    },
+    {
+        "PARAMETER_CATEGORY": "INPUT VOLTAGE",
+        "PARENT_ID": "REQ-001",
+        "REQUIREMENTS_ID": "REQ-001-02",
+        "DESCRIPTION": "In line mode, the SDU shall function on its normal operation until the input voltage drops below 21.6V, where it enters input undervoltage.",
+        "CATEGORY": "Functional",
+        "VERIFICATION_PLAN": "Test (Boundary Value, State Transition)",
+        "VALIDATION_CRITERIA": "At 21.7V remain normal; at 21.6V (or below) detect transition to input undervoltage state.",
+        "Test_Case": ""
+    },
+    {
+        "PARAMETER_CATEGORY": "INPUT VOLTAGE",
+        "PARENT_ID": "REQ-001",
+        "REQUIREMENTS_ID": "REQ-001-03",
+        "DESCRIPTION": "On input undervoltage the SDU shall go to Battery Mode if there is a battery backup else output shall be turned off.",
+        "CATEGORY": "Functional",
+        "VERIFICATION_PLAN": "Test (State Transition)",
+        "VALIDATION_CRITERIA": "Remove DC below threshold with battery connected -> enters Battery Mode; without battery -> output off.",
+        "Test_Case": ""
+    }
+  ]
+}
