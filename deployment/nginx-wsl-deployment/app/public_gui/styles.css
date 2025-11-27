@@ -798,3 +798,42 @@ footer p {
         padding: 30px 20px;
     }
 }
+
+/* Checkbox Group Styling */
+.checkbox-group {
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.checkbox-label:hover {
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-right: 12px;
+    margin-top: 2px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checkbox-label > span:first-of-type {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.checkbox-label .help-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: normal;
+}

@@ -105,6 +105,10 @@ async function handleSingleSubmit(e) {
         requirement.VERIFICATION_PLAN = verificationPlan;
     }
     
+    // Get use_instructions checkbox value
+    const useInstructions = document.getElementById('useInstructionsSingle').checked;
+    requirement.use_instructions = useInstructions;
+    
     showProgress('Generating Test Case...', 'Please wait while AI generates your test case');
     
     try {
@@ -155,6 +159,10 @@ async function handleBatchSubmit(e) {
     
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Get use_instructions checkbox value
+    const useInstructions = document.getElementById('useInstructionsBatch').checked;
+    formData.append('use_instructions', useInstructions);
     
     showProgress('Processing File...', `Uploading and processing ${file.name}`);
     

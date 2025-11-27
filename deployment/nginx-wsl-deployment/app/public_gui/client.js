@@ -105,13 +105,19 @@ async function handleSingleSubmit(e) {
         requirement.VERIFICATION_PLAN = verificationPlan;
     }
     
+    // Get use_instructions checkbox value
+    const useInstructions = document.getElementById('useInstructions').checked;
+    
     showProgress('Generating Test Case...', 'Please wait while AI generates your test case');
     
     try {
         const response = await fetch(`${API_BASE}/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requirement)
+            body: JSON.stringify({
+                ...requirement,
+                use_instructions: useInstructions
+            })
         });
         
         if (!response.ok) {
@@ -155,6 +161,10 @@ async function handleBatchSubmit(e) {
     
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Get use_instructions checkbox value
+    const useInstructions = document.getElementById('useInstructionsBatch').checked;
+    formData.append('use_instructions', useInstructions);
     
     showProgress('Processing File...', `Uploading and processing ${file.name}`);
     

@@ -91,6 +91,14 @@
                                       placeholder="Optional verification approach..."></textarea>
                         </div>
 
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="useInstructionsSingle" checked>
+                                <span>Use System Instructions (recommended)</span>
+                                <span class="help-text">When disabled, LLM decides response format independently</span>
+                            </label>
+                        </div>
+
                         <button type="submit" class="btn-primary" id="generateBtn">
                             <span class="btn-text">🚀 Generate Test Case</span>
                             <span class="spinner" style="display: none;"></span>
@@ -136,6 +144,14 @@
                             <div id="fileInfo" class="file-info" style="display: none;">
                                 <span id="fileName"></span>
                                 <button type="button" id="removeFile" class="btn-remove">✕</button>
+                            </div>
+
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useInstructionsBatch" checked>
+                                    <span>Use System Instructions (recommended)</span>
+                                    <span class="help-text">When disabled, LLM decides response format independently</span>
+                                </label>
                             </div>
 
                             <button type="submit" class="btn-primary" id="uploadBtn" disabled>

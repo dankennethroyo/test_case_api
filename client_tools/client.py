@@ -8,7 +8,13 @@ Test Case Generator API - Python Client
 Simple client for programmatic access to the API
 """
 
-import requests, sys, json, time, os, shutil
+import requests
+import sys
+import json
+import time
+import os
+import shutil
+import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
@@ -125,7 +131,8 @@ class TestCaseGeneratorClient:
     def generate(
         self,
         requirement: Dict[str, Any],
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        use_instructions: bool = True
     ) -> GenerationResult:
         """
         Generate a test case for a single requirement
@@ -133,6 +140,7 @@ class TestCaseGeneratorClient:
         Args:
             requirement: Requirement dictionary with REQUIREMENTS_ID, DESCRIPTION, CATEGORY
             model: Optional model name to override default
+            use_instructions: Whether to use system instructions (default: True)
         
         Returns:
             GenerationResult object
@@ -140,6 +148,7 @@ class TestCaseGeneratorClient:
         payload = requirement.copy()
         if model:
             payload["model"] = model
+        payload["use_instructions"] = use_instructions
         
         try:
             response = self.session.post(
@@ -166,7 +175,8 @@ class TestCaseGeneratorClient:
     def generate_batch(
         self,
         requirements: List[Dict[str, Any]],
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        use_instructions: bool = True
     ) -> List[GenerationResult]:
         """
         Generate test cases for multiple requirements
@@ -174,6 +184,7 @@ class TestCaseGeneratorClient:
         Args:
             requirements: List of requirement dictionaries
             model: Optional model name to override default
+            use_instructions: Whether to use system instructions (default: True)
         
         Returns:
             List of GenerationResult objects
@@ -181,6 +192,7 @@ class TestCaseGeneratorClient:
         payload = {"requirements": requirements}
         if model:
             payload["model"] = model
+        payload["use_instructions"] = use_instructions
         
         try:
             response = self.session.post(
@@ -213,6 +225,7 @@ class TestCaseGeneratorClient:
         self,
         file_path: str,
         model: Optional[str] = None,
+        use_instructions: bool = True,
         incremental_save: bool = False,
         output_file: Optional[str] = None
     ) -> List[GenerationResult]:
@@ -222,6 +235,7 @@ class TestCaseGeneratorClient:
         Args:
             file_path: Path to JSON file containing requirements
             model: Optional model name to override default
+            use_instructions: Whether to use system instructions (default: True)
             incremental_save: If True, save each result as it's generated
             output_file: Output file for incremental saves
         
@@ -276,7 +290,7 @@ class TestCaseGeneratorClient:
                 print(f"Processing requirement {i+1}/{len(requirements)}: {req_id}")
             
             # Generate test case for this requirement
-            result = self.generate(requirement, model)
+            result = self.generate(requirement, model, use_instructions)
             all_results.append(result)
             
             # Save incrementally if requested
@@ -358,8 +372,25 @@ class TestCaseGeneratorClient:
 
 # Example usage
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Test Case Generator API Client')
+    parser.add_argument('--model', help='Model name to use (overrides default)')
+    parser.add_argument('--no-instructions', action='store_true', 
+                       help='Disable system instructions (let LLM decide format)')
+    parser.add_argument('--server', help='API server URL (overrides default)')
+    
+    args = parser.parse_args()
+    
+    # Override server if specified
+    server_url = args.server or tgt_server
+    
     # Initialize client
-    client = TestCaseGeneratorClient()
+    client = TestCaseGeneratorClient(server_url)
+    
+    # Determine use_instructions setting
+    use_instructions = not args.no_instructions
+    
+    # Override model if specified
+    model = args.model or tgt_model
     
     # Check health
     print("Checking API health...")
@@ -372,24 +403,26 @@ if __name__ == "__main__":
     # List models
     print("Available models:")
     models = client.list_models()
-    for model in models:
-        print(f"  - {model}")
+    for m in models:
+        print(f"  - {m}")
     print()
 
     # Generate from file with incremental saving
     tgt_file        = os.getenv("TARGET_FILE", "samples/batch_requirements.json")
     tgt_file_name   = os.getenv("TARGET_FILE_NAME", "batch_requirements.json")
 
-    tgt_file_name = str(tgt_file_name).replace(".json", f"_{str(tgt_model).replace(':', '')}.json")
+    tgt_file_name = str(tgt_file_name).replace(".json", f"_{str(model).replace(':', '')}.json")
     out_file_name   = f"output/{tgt_file_name}"
 
-    print("Generating test cases from file with incremental saving...")
+    print(f"Generating test cases (use_instructions={use_instructions})...")
+    print(f"Model: {model}")
     print(f"Output will be saved to: {out_file_name}")
     print("-" * 60)
     
     file_results = client.generate_from_file(
         tgt_file, 
-        model=tgt_model, 
+        model=model, 
+        use_instructions=use_instructions,
         incremental_save=True, 
         output_file=out_file_name
     )

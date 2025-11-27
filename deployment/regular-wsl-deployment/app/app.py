@@ -37,6 +37,7 @@ MAX_FILE_SIZE_MB        = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
 MAX_FILE_BYTES          = MAX_FILE_SIZE_MB * 1024 * 1024
 debug_mode              = os.getenv("DEBUG_MODE", False)
 ENVIRONMENT             = os.getenv("ENVIRONMENT", "development")  # development or production
+USE_SYSTEM_INSTRUCTIONS = os.getenv("USE_SYSTEM_INSTRUCTIONS", "true").lower() == "true"  # Default: true
 ADMIN_GUI_PATH          = Path(__file__).parent / "admin_gui"
 PUBLIC_GUI_PATH         = Path(__file__).parent / "public_gui"
 
@@ -74,9 +75,20 @@ Guidelines:
 - Test case should verify the requirement is met from end-user perspective"""
 
 #SYSTEM prompt from the instruction file
-def build_system_prompt() -> str:
-    """Build the system prompt for Ollama"""
-    return load_system_instructions()
+def build_system_prompt(use_instructions: bool = None) -> str:
+    """Build the system prompt for Ollama
+    
+    Args:
+        use_instructions: If True, use system instructions. If False, return empty string.
+                         If None, use global USE_SYSTEM_INSTRUCTIONS setting.
+    """
+    if use_instructions is None:
+        use_instructions = USE_SYSTEM_INSTRUCTIONS
+    
+    if use_instructions:
+        return load_system_instructions()
+    else:
+        return ""  # Let LLM decide on its own
 
     ### #generic prompt to generate test cases from requirement
     ### #this is including the actual requirement details [DESCRIPTION, CATEGORY, etc]
@@ -173,7 +185,6 @@ def call_ollama_generate(prompt: str, system_prompt: str, model: str = None) -> 
         payload = {
             "model": model,
             "prompt": prompt,
-            "system": system_prompt,
             "stream": False,
             "options": {
                 "temperature": 0.7,
@@ -181,6 +192,10 @@ def call_ollama_generate(prompt: str, system_prompt: str, model: str = None) -> 
                 "top_p": 0.9
             }
         }
+        
+        # Only include system prompt if it's not empty
+        if system_prompt:
+            payload["system"] = system_prompt
         if debug_mode:
             print(f"Calling Ollama API with model: {model}")
             print(f"Payload: {json.dumps(payload, indent=2)}")
@@ -210,14 +225,20 @@ def validate_requirement(data: Dict[str, Any]) -> bool:
 
 #consolidate the prompt, call to ollama, and return the test case
 #output is an array or results with test cases
-def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None) -> Dict[str, Any]:
-    """Generate a test case for a single requirement"""
+def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None, use_instructions: bool = None) -> Dict[str, Any]:
+    """Generate a test case for a single requirement
+    
+    Args:
+        requirement: The requirement data
+        model: Optional model name to use
+        use_instructions: If True, use system instructions. If False, let LLM decide. If None, use global setting.
+    """
     
     if not validate_requirement(requirement):
         raise ValueError("Requirement missing required fields: REQUIREMENTS_ID, DESCRIPTION, CATEGORY")
     
     # Build prompts
-    system_prompt       = build_system_prompt()
+    system_prompt       = build_system_prompt(use_instructions)
     generation_prompt   = build_generation_prompt(requirement)
     
     # Generate test case using Ollama
@@ -354,8 +375,9 @@ def generate_single():
         if not data:
             return jsonify({"error": "No JSON body provided"}), 400
         
-        # Extract optional model parameter
+        # Extract optional parameters
         model = data.pop("model", None)
+        use_instructions = data.pop("use_instructions", None)
         
         # Validate requirement
         if not validate_requirement(data):
@@ -365,7 +387,7 @@ def generate_single():
             }), 400
         
         # Generate test case
-        result = generate_test_case_for_requirement(data, model)
+        result = generate_test_case_for_requirement(data, model, use_instructions)
         
         return jsonify(result), 200
         
@@ -399,6 +421,7 @@ def generate_batch():
         
         requirements = data.get("requirements", [])
         model = data.get("model", None)
+        use_instructions = data.get("use_instructions", None)
         
         if not isinstance(requirements, list):
             return jsonify({"error": "'requirements' must be an array"}), 400
@@ -412,7 +435,7 @@ def generate_batch():
         
         for idx, requirement in enumerate(requirements):
             try:
-                result = generate_test_case_for_requirement(requirement, model)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions)
                 results.append({
                     "index": idx,
                     "status": "success",
@@ -467,6 +490,7 @@ def generate_stream():
         
         requirements = data.get("requirements", [])
         model = data.get("model", None)
+        use_instructions = data.get("use_instructions", None)
         
         if not isinstance(requirements, list):
             return Response(
@@ -501,7 +525,7 @@ def generate_stream():
                     yield f"data: {json.dumps({'type': 'progress', 'index': idx, 'requirement_id': req_id, 'status': 'processing'})}\n\n"
                     
                     # Generate test case
-                    result = generate_test_case_for_requirement(requirement, model)
+                    result = generate_test_case_for_requirement(requirement, model, use_instructions)
                     successful += 1
                     
                     # Send result
@@ -561,8 +585,10 @@ def generate_from_file():
         
         file = request.files['file']
         model = request.form.get('model', None)
+        use_instructions_str = request.form.get('use_instructions', None)
+        use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
 
-        logger.info(f"Processing file upload: {file.filename}, model: {model or 'default'}")
+        logger.info(f"Processing file upload: {file.filename}, model: {model or 'default'}, use_instructions: {use_instructions}")
 
         if debug_mode:
             print(f"Using model: {model}")
@@ -641,7 +667,7 @@ def generate_from_file():
             if debug_mode:
                 print(f"Processing requirement {idx}: {requirement.get('REQUIREMENTS_ID', 'N/A')}")
             try:
-                result = generate_test_case_for_requirement(requirement, model)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions)
                 logger.info(f"Successfully generated test case for requirement {idx}: {req_id}")
                 
                 if debug_mode:
@@ -701,6 +727,8 @@ def generate_from_file_stream():
         
         file = request.files['file']
         model = request.form.get('model', None)
+        use_instructions_str = request.form.get('use_instructions', None)
+        use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
         
         if file.filename == '':
             return Response(

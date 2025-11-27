@@ -37,6 +37,7 @@ MAX_FILE_SIZE_MB        = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
 MAX_FILE_BYTES          = MAX_FILE_SIZE_MB * 1024 * 1024
 debug_mode              = os.getenv("DEBUG_MODE", False)
 ENVIRONMENT             = os.getenv("ENVIRONMENT", "development")  # development or production
+USE_SYSTEM_INSTRUCTIONS = os.getenv("USE_SYSTEM_INSTRUCTIONS", "true").lower() == "true"  # Default: true
 ADMIN_GUI_PATH          = Path(__file__).parent / "admin_gui"
 PUBLIC_GUI_PATH         = Path(__file__).parent / "public_gui"
 
@@ -74,9 +75,20 @@ Guidelines:
 - Test case should verify the requirement is met from end-user perspective"""
 
 #SYSTEM prompt from the instruction file
-def build_system_prompt() -> str:
-    """Build the system prompt for Ollama"""
-    return load_system_instructions()
+def build_system_prompt(use_instructions: bool = None) -> str:
+    """Build the system prompt for Ollama
+    
+    Args:
+        use_instructions: If True, use system instructions. If False, return empty string.
+                         If None, use global USE_SYSTEM_INSTRUCTIONS setting.
+    """
+    if use_instructions is None:
+        use_instructions = USE_SYSTEM_INSTRUCTIONS
+    
+    if use_instructions:
+        return load_system_instructions()
+    else:
+        return ""  # Let LLM decide on its own
 
     ### #generic prompt to generate test cases from requirement
     ### #this is including the actual requirement details [DESCRIPTION, CATEGORY, etc]
@@ -116,10 +128,20 @@ def build_system_prompt() -> str:
     ###    return prompt
 
 
-def build_generation_prompt(requirement: Dict[str, Any]) -> str:
-    """Build the prompt for test case generation from a requirement (SolaHD DC UPS B Series context)"""
-
-    prompt = """Based on the following requirement specification, generate a detailed system-level integration test case (black-box testing approach).
+def build_generation_prompt(requirement: Dict[str, Any], use_instructions: bool = None) -> str:
+    """Build the prompt for test case generation from a requirement
+    
+    Args:
+        requirement: The requirement data
+        use_instructions: If True, use product context. If False, use minimal prompt.
+                         If None, use global USE_SYSTEM_INSTRUCTIONS setting.
+    """
+    if use_instructions is None:
+        use_instructions = USE_SYSTEM_INSTRUCTIONS
+    
+    if use_instructions:
+        # Full prompt with product context
+        prompt = """Based on the following requirement specification, generate a detailed system-level integration test case (black-box testing approach).
 
 PRODUCT CONTEXT:
 - SolaHD SDU DC UPS “B” Series (Models: SDU1024B-EIP, SDU2024B-EIP, SDU1024B-MBUS, SDU2024B-MBUS)
@@ -129,6 +151,12 @@ PRODUCT CONTEXT:
 - Protections & Thresholds: Input undervoltage (<21.6V for 10ms), input overvoltage (>29V for 10ms), battery undervoltage (<21.6V for 100ms), battery overvoltage (>28.4V for 500ms), battery dead (<10V for 100ms), output overcurrent (>150% rated for 5ms), PowerBoost (140% rated for 6s), overtemperature (shutdown/auto-recovery)
 - Environmental: –15°C to +50°C (ordinary), –15°C to +40°C (hazardous), 0–95% RH, altitude ≤3000m
 - QA Alignment: Requirement-driven, traceable black-box validation per SQAV; entry/exit criteria, defect management, traceability
+REQUIREMENT DETAILS:
+"""
+    else:
+        # Minimal prompt without product context - let LLM decide
+        prompt = """Based on the following requirement specification, generate a detailed test case.
+
 REQUIREMENT DETAILS:
 """
 
@@ -142,7 +170,9 @@ REQUIREMENT DETAILS:
             print(f". Added to prompt: {key}: {value}")
             print(f"Current prompt state:\n{prompt}")
 
-    prompt += """
+    if use_instructions:
+        # Full structured guidelines
+        prompt += """
 
 Please generate a comprehensive test case that includes:
 1. Test Case Title: A clear, concise title
@@ -160,6 +190,11 @@ Please generate a comprehensive test case that includes:
 Format the response as a clear, structured text that describes the test case in detail.
 Do NOT use markdown formatting or code blocks.
 Do NOT include any explanation or preamble - just the test case content."""
+    else:
+        # Minimal guidelines - let LLM decide
+        prompt += """
+
+Generate a detailed test case based on the requirement above."""
 
     return prompt
 
@@ -173,7 +208,6 @@ def call_ollama_generate(prompt: str, system_prompt: str, model: str = None) -> 
         payload = {
             "model": model,
             "prompt": prompt,
-            "system": system_prompt,
             "stream": False,
             "options": {
                 "temperature": 0.7,
@@ -181,6 +215,10 @@ def call_ollama_generate(prompt: str, system_prompt: str, model: str = None) -> 
                 "top_p": 0.9
             }
         }
+        
+        # Only include system prompt if it's not empty
+        if system_prompt:
+            payload["system"] = system_prompt
         if debug_mode:
             print(f"Calling Ollama API with model: {model}")
             print(f"Payload: {json.dumps(payload, indent=2)}")
@@ -210,15 +248,21 @@ def validate_requirement(data: Dict[str, Any]) -> bool:
 
 #consolidate the prompt, call to ollama, and return the test case
 #output is an array or results with test cases
-def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None) -> Dict[str, Any]:
-    """Generate a test case for a single requirement"""
+def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None, use_instructions: bool = None) -> Dict[str, Any]:
+    """Generate a test case for a single requirement
+    
+    Args:
+        requirement: The requirement data
+        model: Optional model name to use
+        use_instructions: If True, use system instructions. If False, let LLM decide. If None, use global setting.
+    """
     
     if not validate_requirement(requirement):
         raise ValueError("Requirement missing required fields: REQUIREMENTS_ID, DESCRIPTION, CATEGORY")
     
     # Build prompts
-    system_prompt       = build_system_prompt()
-    generation_prompt   = build_generation_prompt(requirement)
+    system_prompt       = build_system_prompt(use_instructions)
+    generation_prompt   = build_generation_prompt(requirement, use_instructions)
     
     # Generate test case using Ollama
     test_case_content = call_ollama_generate(generation_prompt, system_prompt, model)
@@ -348,14 +392,39 @@ def generate_single():
         "model": "optional-model-name"
     }
     """
+
     try:
+        
+        """
+        # The following block implements the endpoint logic for generating a single
+        # test case from a requirement JSON payload. Steps:
+        # 1. Parse JSON body from the incoming request using `request.get_json()`.
+        # 2. If no JSON is provided, return HTTP 400 with an explanatory error.
+        # 3. Extract optional parameters from the payload (`model` and
+        #    `use_instructions`) using `pop` so they are not passed to later
+        #    validation/generation code as part of the requirement fields.
+        # 4. Validate the remaining requirement fields using
+        #    `validate_requirement()` which ensures required fields
+        #    (`REQUIREMENTS_ID`, `DESCRIPTION`, `CATEGORY`) are present. If
+        #    validation fails return HTTP 400 with a structured error describing
+        #    the missing fields.
+        # 5. Call `generate_test_case_for_requirement()` with the cleaned
+        #    requirement dict, the optional `model`, and `use_instructions` flag
+        #    to produce the generated test case content. That function builds
+        #    prompts, calls the external Ollama API, and returns the requirement
+        #    dictionary augmented with `Test_Case` and `Generated_At` fields.
+        # 6. Return the generated result as JSON with HTTP 200 on success.
+        # 7. Errors raised during validation produce a 400 response; other
+        #    unexpected exceptions are logged and returned as HTTP 500.
+        """
         data = request.get_json()
         
         if not data:
             return jsonify({"error": "No JSON body provided"}), 400
         
-        # Extract optional model parameter
+        # Extract optional parameters
         model = data.pop("model", None)
+        use_instructions = data.pop("use_instructions", None)
         
         # Validate requirement
         if not validate_requirement(data):
@@ -365,7 +434,7 @@ def generate_single():
             }), 400
         
         # Generate test case
-        result = generate_test_case_for_requirement(data, model)
+        result = generate_test_case_for_requirement(data, model, use_instructions)
         
         return jsonify(result), 200
         
@@ -399,6 +468,7 @@ def generate_batch():
         
         requirements = data.get("requirements", [])
         model = data.get("model", None)
+        use_instructions = data.get("use_instructions", None)
         
         if not isinstance(requirements, list):
             return jsonify({"error": "'requirements' must be an array"}), 400
@@ -412,7 +482,7 @@ def generate_batch():
         
         for idx, requirement in enumerate(requirements):
             try:
-                result = generate_test_case_for_requirement(requirement, model)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions)
                 results.append({
                     "index": idx,
                     "status": "success",
@@ -467,6 +537,7 @@ def generate_stream():
         
         requirements = data.get("requirements", [])
         model = data.get("model", None)
+        use_instructions = data.get("use_instructions", None)
         
         if not isinstance(requirements, list):
             return Response(
@@ -501,7 +572,7 @@ def generate_stream():
                     yield f"data: {json.dumps({'type': 'progress', 'index': idx, 'requirement_id': req_id, 'status': 'processing'})}\n\n"
                     
                     # Generate test case
-                    result = generate_test_case_for_requirement(requirement, model)
+                    result = generate_test_case_for_requirement(requirement, model, use_instructions)
                     successful += 1
                     
                     # Send result
@@ -561,8 +632,10 @@ def generate_from_file():
         
         file = request.files['file']
         model = request.form.get('model', None)
+        use_instructions_str = request.form.get('use_instructions', None)
+        use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
 
-        logger.info(f"Processing file upload: {file.filename}, model: {model or 'default'}")
+        logger.info(f"Processing file upload: {file.filename}, model: {model or 'default'}, use_instructions: {use_instructions}")
 
         if debug_mode:
             print(f"Using model: {model}")
@@ -641,7 +714,7 @@ def generate_from_file():
             if debug_mode:
                 print(f"Processing requirement {idx}: {requirement.get('REQUIREMENTS_ID', 'N/A')}")
             try:
-                result = generate_test_case_for_requirement(requirement, model)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions)
                 logger.info(f"Successfully generated test case for requirement {idx}: {req_id}")
                 
                 if debug_mode:
@@ -701,6 +774,8 @@ def generate_from_file_stream():
         
         file = request.files['file']
         model = request.form.get('model', None)
+        use_instructions_str = request.form.get('use_instructions', None)
+        use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
         
         if file.filename == '':
             return Response(

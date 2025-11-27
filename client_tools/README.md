@@ -13,10 +13,18 @@ Python client for programmatic access to the Test Case Generator API.
 - Generate from JSON files
 - Health checks and model listing
 - Incremental saving for large batches
+- **System instructions control** (use instructions or let LLM decide format)
 
 **Usage:**
 ```bash
-python client.py
+python client.py [options]
+```
+
+**Command-line Options:**
+```bash
+--model MODEL          # Override default model
+--no-instructions      # Disable system instructions (let LLM decide format)
+--server URL          # Override API server URL
 ```
 
 ### 2. **transform_requirements.py** - Excel to JSON/CSV Converter
@@ -154,16 +162,40 @@ Your Excel file should have these columns:
 | VALIDATION_CRITERIA | No | Validation criteria |
 | Test_Case | No | Generated test case (output) |
 
-## 🔗 API Endpoints
+## 🎛️ System Instructions Control
 
-The client connects to these endpoints:
+Control whether the AI uses predefined system instructions or decides response format independently.
 
-- `GET /health` - Health check
-- `GET /models` - List available models
-- `GET /instructions` - Get system instructions
-- `POST /instructions` - Update system instructions
-- `POST /generate` - Generate single test case
-- `POST /generate/batch` - Generate batch test cases
+### Command Line
+```bash
+# Use system instructions (default)
+python client.py
+
+# Let LLM decide format
+python client.py --no-instructions
+```
+
+### Programmatic Usage
+```python
+# Use system instructions (default)
+result = client.generate(requirement, use_instructions=True)
+
+# Let LLM decide format
+result = client.generate(requirement, use_instructions=False)
+
+# Batch with custom setting
+results = client.generate_batch(requirements, use_instructions=False)
+```
+
+### Environment Variable
+```env
+# In .env file (affects default behavior)
+USE_SYSTEM_INSTRUCTIONS=true  # Default: true
+```
+
+**When to use:**
+- **With instructions** (default): Structured, consistent test cases
+- **Without instructions**: Creative, varied responses from LLM
 
 ## 💡 Examples
 

@@ -44,6 +44,17 @@ python client.py
 python convert_results.py output/your_results.json
 ```
 
+**Option D: Disable System Instructions**
+```bash
+# Generate test cases without system instructions
+python client.py --no-instructions
+
+# Or programmatically in your script:
+from client import TestCaseGeneratorClient
+client = TestCaseGeneratorClient()
+result = client.generate(requirement="...", use_instructions=False)
+```
+
 ## 🔧 Tools Overview
 
 ### client.py
@@ -102,6 +113,37 @@ TARGET_FILE_NAME=batch_requirements.json
 # Debug Mode
 DEBUG_MODE=False
 ```
+
+## 🧠 System Instructions Control
+
+The API uses system instructions to guide the AI model for better test case generation. You can control this behavior:
+
+### Command Line
+```bash
+# Use system instructions (default)
+python client.py
+
+# Disable system instructions
+python client.py --no-instructions
+```
+
+### Programmatic API
+```python
+from client import TestCaseGeneratorClient
+
+client = TestCaseGeneratorClient()
+
+# With system instructions (default)
+result = client.generate(requirement="...", use_instructions=True)
+
+# Without system instructions
+result = client.generate(requirement="...", use_instructions=False)
+```
+
+### Environment Variable
+Set `USE_SYSTEM_INSTRUCTIONS=false` in your environment to disable by default.
+
+**Note**: Using system instructions is recommended for consistent, high-quality test case generation.
 
 ## 📊 Excel Template Format
 
@@ -204,5 +246,5 @@ python -m json.tool your_file.json
 
 ---
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Last Updated**: 2025-01-10
