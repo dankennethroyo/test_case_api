@@ -133,23 +133,26 @@ def build_system_prompt(use_instructions: bool = None, webpage_instructions: str
     ###    return prompt
 
 
-def build_generation_prompt(requirement: Dict[str, Any]) -> str:
+def build_generation_prompt(requirement: Dict[str, Any], use_instructions: bool = None, webpage_instructions: str = None) -> str:
     """Build the prompt for test case generation from a requirement
     
     Args:
         requirement: The requirement data
         use_instructions: If True, use product context. If False, use minimal prompt.
                          If None, use global USE_SYSTEM_INSTRUCTIONS setting.
+        webpage_instructions: Custom instructions from webpage, if provided
     """
     if use_instructions is None:
         use_instructions = USE_SYSTEM_INSTRUCTIONS
     
     if use_instructions:
+        if webpage_instructions:
+            return webpage_instructions
         # Full prompt with product context
         prompt = """Based on the following requirement specification, generate a detailed system-level integration test case (black-box testing approach).
 
 PRODUCT CONTEXT:
-- SolaHD SDU DC UPS “B” Series (Models: SDU1024B-EIP, SDU2024B-EIP, SDU1024B-MBUS, SDU2024B-MBUS)
+- SolaHD SDU DC UPS "B" Series (Models: SDU1024B-EIP, SDU2024B-EIP, SDU1024B-MBUS, SDU2024B-MBUS)
 - Output: 24V DC, 10A or 20A (model dependent)
 - Communications: EtherNet/IP, Modbus, GUI/webserver; telemetry includes input/output voltage/current, battery voltage, SoC, SoH, temperature, event logs, alarms; remote ON/OFF; LED indicators; PC safe shutdown/restart
 - Battery Management: VRLA and LiFePO4 (auto-detect/user-select), hot-swappable, external battery modules; charging stops at 28V; auto-recharge; dead battery detection (<10V); auto/manual self-test
@@ -159,6 +162,8 @@ PRODUCT CONTEXT:
 REQUIREMENT DETAILS:
 """
     else:
+        if webpage_instructions:
+            return webpage_instructions
         # Minimal prompt without product context - let LLM decide
         prompt = """Based on the following requirement specification, generate a detailed test case.
 
@@ -170,10 +175,10 @@ REQUIREMENT DETAILS:
         if key != "Test_Case" and value:
             prompt += f"\n{key}: {value}"
 
-        # Optional debug output (if you use debug_mode)
-        if 'debug_mode' in globals() and debug_mode:
-            print(f". Added to prompt: {key}: {value}")
-            print(f"Current prompt state:\n{prompt}")
+            # Optional debug output (if you use debug_mode)
+            if 'debug_mode' in globals() and debug_mode:
+                print(f". Added to prompt: {key}: {value}")
+                print(f"Current prompt state:\n{prompt}")
 
     if use_instructions:
         # Full structured guidelines
@@ -224,6 +229,8 @@ def call_ollama_generate(prompt: str, system_prompt: str, model: str = None) -> 
         # Only include system prompt if it's not empty
         if system_prompt:
             payload["system"] = system_prompt
+        logger.info(f"Calling Ollama API with model: {model}")
+        logger.info(f"Payload: {json.dumps(payload)}")
         if debug_mode:
             print(f"Calling Ollama API with model: {model}")
             print(f"Payload: {json.dumps(payload, indent=2)}")
@@ -268,7 +275,7 @@ def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str =
     
     # Build prompts
     system_prompt       = build_system_prompt(use_instructions, webpage_instructions)
-    generation_prompt   = build_generation_prompt(requirement)
+    generation_prompt   = build_generation_prompt(requirement, use_instructions, webpage_instructions)
     
     # Generate test case using Ollama
     test_case_content = call_ollama_generate(generation_prompt, system_prompt, model)

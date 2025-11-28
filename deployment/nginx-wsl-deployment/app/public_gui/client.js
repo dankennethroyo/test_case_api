@@ -1,6 +1,7 @@
 // Public Client Interface JavaScript
 const API_BASE = window.location.origin;
 let currentResults = null;
+let originalInstructions = '';
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,10 +116,10 @@ async function handleSingleSubmit(e) {
     // Get use_instructions checkbox value
     const useInstructions = document.getElementById('useInstructions').checked;
     
-    // Get webpage_instructions from textarea
-    const webpageInstructions = document.getElementById('instructionsTextarea').value.trim();
-    if (webpageInstructions) {
-        requirement.webpage_instructions = webpageInstructions;
+    // Get webpage_instructions from textarea if modified
+    const currentInstructions = document.getElementById('instructionsTextarea').value.trim();
+    if (currentInstructions !== originalInstructions) {
+        requirement.webpage_instructions = currentInstructions;
     }
     
     showProgress('Generating Test Case...', 'Please wait while AI generates your test case');
@@ -179,10 +180,10 @@ async function handleBatchSubmit(e) {
     const useInstructions = document.getElementById('useInstructionsBatch').checked;
     formData.append('use_instructions', useInstructions);
     
-    // Get webpage_instructions from textarea
-    const webpageInstructions = document.getElementById('instructionsTextarea').value.trim();
-    if (webpageInstructions) {
-        formData.append('webpage_instructions', webpageInstructions);
+    // Get webpage_instructions from textarea if modified
+    const currentInstructions = document.getElementById('instructionsTextarea').value.trim();
+    if (currentInstructions !== originalInstructions) {
+        formData.append('webpage_instructions', currentInstructions);
     }
     
     showProgress('Processing File...', `Uploading and processing ${file.name}`);
@@ -428,7 +429,8 @@ async function loadInstructions() {
             throw new Error(`Server returned ${response.status}`);
         }
         const data = await response.json();
-        document.getElementById('instructionsTextarea').value = data.instructions || '';
+        originalInstructions = data.instructions || '';
+        document.getElementById('instructionsTextarea').value = originalInstructions;
     } catch (error) {
         console.error('Failed to load instructions:', error);
         showError('Failed to load instructions', error.message);
