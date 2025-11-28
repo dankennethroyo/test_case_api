@@ -51,6 +51,13 @@ function setupEventListeners() {
     document.getElementById('downloadBtn').addEventListener('click', () => downloadResults('json'));
     document.getElementById('downloadTxtBtn').addEventListener('click', () => downloadResults('txt'));
     document.getElementById('clearBtn').addEventListener('click', clearResults);
+    
+    // Instructions tab actions
+    document.getElementById('loadInstructionsBtn').addEventListener('click', loadInstructions);
+    document.getElementById('clearInstructionsBtn').addEventListener('click', clearInstructions);
+    
+    // Load instructions on page load
+    loadInstructions();
 }
 
 // Setup drag and drop
@@ -107,6 +114,12 @@ async function handleSingleSubmit(e) {
     
     // Get use_instructions checkbox value
     const useInstructions = document.getElementById('useInstructions').checked;
+    
+    // Get webpage_instructions from textarea
+    const webpageInstructions = document.getElementById('instructionsTextarea').value.trim();
+    if (webpageInstructions) {
+        requirement.webpage_instructions = webpageInstructions;
+    }
     
     showProgress('Generating Test Case...', 'Please wait while AI generates your test case');
     
@@ -165,6 +178,12 @@ async function handleBatchSubmit(e) {
     // Get use_instructions checkbox value
     const useInstructions = document.getElementById('useInstructionsBatch').checked;
     formData.append('use_instructions', useInstructions);
+    
+    // Get webpage_instructions from textarea
+    const webpageInstructions = document.getElementById('instructionsTextarea').value.trim();
+    if (webpageInstructions) {
+        formData.append('webpage_instructions', webpageInstructions);
+    }
     
     showProgress('Processing File...', `Uploading and processing ${file.name}`);
     
@@ -400,3 +419,23 @@ window.addEventListener('click', (e) => {
         e.target.style.display = 'none';
     }
 });
+
+// Load instructions from server
+async function loadInstructions() {
+    try {
+        const response = await fetch(`${API_BASE}/instructions`);
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+        const data = await response.json();
+        document.getElementById('instructionsTextarea').value = data.instructions || '';
+    } catch (error) {
+        console.error('Failed to load instructions:', error);
+        showError('Failed to load instructions', error.message);
+    }
+}
+
+// Clear instructions textarea
+function clearInstructions() {
+    document.getElementById('instructionsTextarea').value = '';
+}

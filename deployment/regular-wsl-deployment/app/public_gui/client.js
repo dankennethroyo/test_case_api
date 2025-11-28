@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeTabs();
     setupEventListeners();
     setupDragDrop();
+    loadInstructions();
 });
 
 // Tab management
@@ -81,6 +82,18 @@ function setupDragDrop() {
     });
 }
 
+// Load instructions from API
+async function loadInstructions() {
+    try {
+        const response = await fetch(`${API_BASE}/instructions`);
+        const data = await response.json();
+        document.getElementById('instructionsTextarea').value = data.instructions;
+    } catch (error) {
+        console.error('Failed to load instructions:', error);
+        document.getElementById('instructionsTextarea').value = 'Failed to load instructions.';
+    }
+}
+
 // Handle single requirement submission
 async function handleSingleSubmit(e) {
     e.preventDefault();
@@ -108,6 +121,9 @@ async function handleSingleSubmit(e) {
     // Get use_instructions checkbox value
     const useInstructions = document.getElementById('useInstructionsSingle').checked;
     requirement.use_instructions = useInstructions;
+    
+    // Get webpage instructions
+    requirement.webpage_instructions = document.getElementById('instructionsTextarea').value;
     
     showProgress('Generating Test Case...', 'Please wait while AI generates your test case');
     
@@ -163,6 +179,9 @@ async function handleBatchSubmit(e) {
     // Get use_instructions checkbox value
     const useInstructions = document.getElementById('useInstructionsBatch').checked;
     formData.append('use_instructions', useInstructions);
+    
+    // Get webpage instructions
+    formData.append('webpage_instructions', document.getElementById('instructionsTextarea').value);
     
     showProgress('Processing File...', `Uploading and processing ${file.name}`);
     

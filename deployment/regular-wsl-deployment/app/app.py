@@ -75,20 +75,26 @@ Guidelines:
 - Test case should verify the requirement is met from end-user perspective"""
 
 #SYSTEM prompt from the instruction file
-def build_system_prompt(use_instructions: bool = None) -> str:
+def build_system_prompt(use_instructions: bool = None, webpage_instructions: str = None) -> str:
     """Build the system prompt for Ollama
     
     Args:
         use_instructions: If True, use system instructions. If False, return empty string.
                          If None, use global USE_SYSTEM_INSTRUCTIONS setting.
+        webpage_instructions: Custom instructions from webpage
     """
+    original = load_system_instructions()
+    
     if use_instructions is None:
         use_instructions = USE_SYSTEM_INSTRUCTIONS
     
     if use_instructions:
-        return load_system_instructions()
+        if webpage_instructions and webpage_instructions.strip() == original.strip():
+            return original
+        else:
+            return ""
     else:
-        return ""  # Let LLM decide on its own
+        return ""
 
     ### #generic prompt to generate test cases from requirement
     ### #this is including the actual requirement details [DESCRIPTION, CATEGORY, etc]
@@ -225,21 +231,22 @@ def validate_requirement(data: Dict[str, Any]) -> bool:
 
 #consolidate the prompt, call to ollama, and return the test case
 #output is an array or results with test cases
-def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None, use_instructions: bool = None) -> Dict[str, Any]:
+def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str = None, use_instructions: bool = None, webpage_instructions: str = None) -> Dict[str, Any]:
     """Generate a test case for a single requirement
     
     Args:
         requirement: The requirement data
         model: Optional model name to use
         use_instructions: If True, use system instructions. If False, let LLM decide. If None, use global setting.
+        webpage_instructions: Custom instructions from webpage
     """
     
     if not validate_requirement(requirement):
         raise ValueError("Requirement missing required fields: REQUIREMENTS_ID, DESCRIPTION, CATEGORY")
     
     # Build prompts
-    system_prompt       = build_system_prompt(use_instructions)
-    generation_prompt   = build_generation_prompt(requirement)
+    system_prompt       = build_system_prompt(use_instructions, webpage_instructions)
+    generation_prompt   = build_generation_prompt(requirement, webpage_instructions, use_instructions)
     
     # Generate test case using Ollama
     test_case_content = call_ollama_generate(generation_prompt, system_prompt, model)
@@ -378,6 +385,7 @@ def generate_single():
         # Extract optional parameters
         model = data.pop("model", None)
         use_instructions = data.pop("use_instructions", None)
+        webpage_instructions = data.pop("webpage_instructions", None)
         
         # Validate requirement
         if not validate_requirement(data):
@@ -387,7 +395,7 @@ def generate_single():
             }), 400
         
         # Generate test case
-        result = generate_test_case_for_requirement(data, model, use_instructions)
+        result = generate_test_case_for_requirement(data, model, use_instructions, webpage_instructions)
         
         return jsonify(result), 200
         
@@ -422,6 +430,7 @@ def generate_batch():
         requirements = data.get("requirements", [])
         model = data.get("model", None)
         use_instructions = data.get("use_instructions", None)
+        webpage_instructions = data.get("webpage_instructions", None)
         
         if not isinstance(requirements, list):
             return jsonify({"error": "'requirements' must be an array"}), 400
@@ -435,7 +444,7 @@ def generate_batch():
         
         for idx, requirement in enumerate(requirements):
             try:
-                result = generate_test_case_for_requirement(requirement, model, use_instructions)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions, webpage_instructions)
                 results.append({
                     "index": idx,
                     "status": "success",
@@ -491,6 +500,7 @@ def generate_stream():
         requirements = data.get("requirements", [])
         model = data.get("model", None)
         use_instructions = data.get("use_instructions", None)
+        webpage_instructions = data.get("webpage_instructions", None)
         
         if not isinstance(requirements, list):
             return Response(
@@ -525,7 +535,7 @@ def generate_stream():
                     yield f"data: {json.dumps({'type': 'progress', 'index': idx, 'requirement_id': req_id, 'status': 'processing'})}\n\n"
                     
                     # Generate test case
-                    result = generate_test_case_for_requirement(requirement, model, use_instructions)
+                    result = generate_test_case_for_requirement(requirement, model, use_instructions, webpage_instructions)
                     successful += 1
                     
                     # Send result
@@ -587,6 +597,7 @@ def generate_from_file():
         model = request.form.get('model', None)
         use_instructions_str = request.form.get('use_instructions', None)
         use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
+        webpage_instructions = request.form.get('webpage_instructions', None)
 
         logger.info(f"Processing file upload: {file.filename}, model: {model or 'default'}, use_instructions: {use_instructions}")
 
@@ -667,7 +678,7 @@ def generate_from_file():
             if debug_mode:
                 print(f"Processing requirement {idx}: {requirement.get('REQUIREMENTS_ID', 'N/A')}")
             try:
-                result = generate_test_case_for_requirement(requirement, model, use_instructions)
+                result = generate_test_case_for_requirement(requirement, model, use_instructions, webpage_instructions)
                 logger.info(f"Successfully generated test case for requirement {idx}: {req_id}")
                 
                 if debug_mode:
@@ -729,6 +740,7 @@ def generate_from_file_stream():
         model = request.form.get('model', None)
         use_instructions_str = request.form.get('use_instructions', None)
         use_instructions = None if use_instructions_str is None else use_instructions_str.lower() == 'true'
+        webpage_instructions = request.form.get('webpage_instructions', None)
         
         if file.filename == '':
             return Response(
@@ -791,6 +803,7 @@ def generate_from_file_stream():
         
         # Store filename for use in generator
         filename = file.filename
+        webpage_instructions_param = webpage_instructions
 
     except Exception as e:
         return Response(
@@ -814,7 +827,7 @@ def generate_from_file_stream():
                     yield f"data: {json.dumps({'type': 'progress', 'index': idx, 'requirement_id': req_id, 'status': 'processing'})}\n\n"
                     
                     # Generate test case
-                    result = generate_test_case_for_requirement(requirement, model)
+                    result = generate_test_case_for_requirement(requirement, model, use_instructions, webpage_instructions_param)
                     successful += 1
                     
                     # Send result

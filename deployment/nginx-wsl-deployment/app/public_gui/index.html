@@ -29,6 +29,7 @@
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="single">📝 Single Requirement</button>
                     <button class="tab-btn" data-tab="batch">📄 Upload File</button>
+                    <button class="tab-btn" data-tab="instructions">📋 Instructions</button>
                 </div>
 
                 <!-- Single Requirement Tab -->
@@ -159,6 +160,36 @@
                                 <span class="spinner" style="display: none;"></span>
                             </button>
                         </form>
+                    </div>
+                </div>
+
+                <!-- Instructions Tab -->
+                <div id="instructions" class="tab-panel">
+                    <div class="instructions-section">
+                        <div class="instructions-info">
+                            <h3>📋 System Instructions</h3>
+                            <p>Customize the system instructions used for test case generation. 
+                            These instructions guide the AI in generating appropriate test cases.</p>
+                            <p><strong>Note:</strong> Changes here only affect the current session and do not modify the original instructions file.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="instructionsTextarea">
+                                Custom Instructions
+                                <span class="help-text">Edit the instructions that will be sent to the AI model</span>
+                            </label>
+                            <textarea id="instructionsTextarea" rows="15" 
+                                      placeholder="Loading instructions..."></textarea>
+                        </div>
+
+                        <div class="instructions-actions">
+                            <button type="button" class="btn-secondary" id="loadInstructionsBtn">
+                                <span class="btn-text">🔄 Reload Original</span>
+                            </button>
+                            <button type="button" class="btn-action" id="clearInstructionsBtn">
+                                <span class="btn-text">🗑️ Clear</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
