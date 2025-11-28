@@ -45,22 +45,64 @@ python transform_requirements.py --file Requirement_Document.xlsx
 python transform_requirements.py --file Requirement_Document.xlsx --output
 ```
 
-### 3. **convert_results.py** - Test Case Results Converter
-Converts generated test cases from JSON to various formats.
+### 4. **selenium_tests/** - Comprehensive Web UI Testing
+Selenium-based test suite for validating the deployed web interface and API functionality using pytest.
 
 **Features:**
-- Individual TXT files per requirement
-- Individual Markdown files per requirement
-- Single CSV file with all test cases
-- Structured field parsing
+- Automated browser testing of the web UI using pytest framework
+- Comprehensive validation of all 4 instruction conditions
+- Output verification and logic testing
+- HTML and JSON report generation
+- Cross-platform compatibility (Chrome WebDriver)
+- Parametrized tests for instruction conditions
+
+**Setup:**
+```bash
+# Install dependencies (includes pytest)
+pip install -r requirements.txt
+```
 
 **Usage:**
 ```bash
-# Convert default output
-python convert_results.py
+# Run all tests with pytest
+pytest selenium_tests/test_selenium_pytest.py
 
-# Convert specific file
-python convert_results.py path/to/results.json
+# Or use the runner scripts
+# Windows
+run_selenium_tests_pytest.bat
+
+# Linux/Mac
+./run_selenium_tests_pytest.sh
+```
+
+**Test Coverage:**
+- ✅ Page loading and basic functionality
+- ✅ Tab navigation (Single, Batch, Instructions)
+- ✅ Single requirement generation
+- ✅ All 4 instruction conditions (parametrized):
+  - Checked + Modified instructions
+  - Checked + Unmodified instructions
+  - Unchecked + Modified instructions
+  - Unchecked + Unmodified instructions
+- ✅ Import/Export functionality
+- ✅ Result display and validation
+
+**Reports:**
+- Console output with pytest formatting
+- HTML Report: `selenium_test_report.html` (self-contained)
+- JSON reports can be generated with additional pytest plugins
+
+**Configuration:**
+- pytest.ini configures test discovery and HTML reporting
+- Tests run in headless Chrome by default
+- Timeout: 120 seconds for generation tests
+
+### 5. **selenium_tests/run_selenium_tests.py** - Test Runner
+Simple wrapper script to run the Selenium test suite with proper error handling.
+
+**Usage:**
+```bash
+python selenium_tests/run_selenium_tests.py
 ```
 
 ## 📋 Requirements
@@ -75,6 +117,8 @@ pip install -r requirements.txt
 - `python-dotenv` - Environment variable management
 - `pandas` - Excel/CSV processing
 - `openpyxl` - Excel file reading
+- `selenium` - Web browser automation
+- `webdriver-manager` - Automatic WebDriver management
 
 ## 🔧 Configuration
 
@@ -103,6 +147,9 @@ client_tools/
 ├── client.py                      # API client
 ├── transform_requirements.py     # Excel to JSON/CSV converter
 ├── convert_results.py            # Results converter
+├── selenium_tests/                # Selenium test suite
+│   ├── selenium_test_suite.py    # Comprehensive test suite
+│   └── run_selenium_tests.py     # Test runner script
 ├── samples/                       # Sample requirement files
 │   ├── single_requirement.json
 │   ├── batch_requirements.json
