@@ -55,6 +55,11 @@ function setupEventListeners() {
     
     // Instructions tab actions
     document.getElementById('loadInstructionsBtn').addEventListener('click', loadInstructions);
+    document.getElementById('exportInstructionsBtn').addEventListener('click', exportInstructions);
+    document.getElementById('importInstructionsBtn').addEventListener('click', () => {
+        document.getElementById('importFileInput').click();
+    });
+    document.getElementById('importFileInput').addEventListener('change', importInstructions);
     document.getElementById('clearInstructionsBtn').addEventListener('click', clearInstructions);
     
     // Load instructions on page load
@@ -440,4 +445,64 @@ async function loadInstructions() {
 // Clear instructions textarea
 function clearInstructions() {
     document.getElementById('instructionsTextarea').value = '';
+}
+
+// Export instructions to file
+function exportInstructions() {
+    const instructions = document.getElementById('instructionsTextarea').value.trim();
+    
+    if (!instructions) {
+        showError('No instructions to export', 'The instructions textarea is empty');
+        return;
+    }
+    
+    const blob = new Blob([instructions], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `test_case_instructions_${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showSuccess('Instructions exported successfully!');
+}
+
+// Import instructions from file
+function importInstructions(e) {
+    const file = e.target.files[0];
+    
+    if (!file) {
+        return;
+    }
+    
+    // Validate file type
+    if (!file.name.endsWith('.txt')) {
+        showError('Invalid file type', 'Please select a .txt file');
+        return;
+    }
+    
+    // Validate file size (1MB limit for instructions)
+    const maxSize = 1024 * 1024;
+    if (file.size > maxSize) {
+        showError('File too large', 'Maximum file size is 1MB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const content = e.target.result;
+        document.getElementById('instructionsTextarea').value = content;
+        showSuccess('Instructions imported successfully!');
+    };
+    
+    reader.onerror = () => {
+        showError('Failed to read file', 'Could not read the selected file');
+    };
+    
+    reader.readAsText(file);
+    
+    // Clear the input so the same file can be selected again
+    e.target.value = '';
 }
