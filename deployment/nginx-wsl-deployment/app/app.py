@@ -133,7 +133,7 @@ def build_system_prompt(use_instructions: bool = None, webpage_instructions: str
     ###    return prompt
 
 
-def build_generation_prompt(requirement: Dict[str, Any], use_instructions: bool = None) -> str:
+def build_generation_prompt(requirement: Dict[str, Any]) -> str:
     """Build the prompt for test case generation from a requirement
     
     Args:
@@ -268,7 +268,7 @@ def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str =
     
     # Build prompts
     system_prompt       = build_system_prompt(use_instructions, webpage_instructions)
-    generation_prompt   = build_generation_prompt(requirement, use_instructions, webpage_instructions)
+    generation_prompt   = build_generation_prompt(requirement)
     
     # Generate test case using Ollama
     test_case_content = call_ollama_generate(generation_prompt, system_prompt, model)

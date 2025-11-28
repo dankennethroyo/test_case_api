@@ -246,7 +246,7 @@ def generate_test_case_for_requirement(requirement: Dict[str, Any], model: str =
     
     # Build prompts
     system_prompt       = build_system_prompt(use_instructions, webpage_instructions)
-    generation_prompt   = build_generation_prompt(requirement, webpage_instructions, use_instructions)
+    generation_prompt   = build_generation_prompt(requirement)
     
     # Generate test case using Ollama
     test_case_content = call_ollama_generate(generation_prompt, system_prompt, model)
