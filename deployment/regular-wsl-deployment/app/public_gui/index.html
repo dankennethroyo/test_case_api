@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Test Case Generator</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
     <link rel="stylesheet" href="/client/styles.css">
 </head>
 <body>
@@ -94,9 +97,9 @@
 
                         <div class="form-group checkbox-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="useInstructionsSingle" checked>
+                                <input type="checkbox" id="useInstructions" checked>
                                 <span>Use System Instructions (recommended)</span>
-                                <span class="help-text">When disabled, LLM decides response format independently</span>
+                                <span class="help-text">Disabling this will let the AI decide the response format freely</span>
                             </label>
                         </div>
 
@@ -151,7 +154,7 @@
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="useInstructionsBatch" checked>
                                     <span>Use System Instructions (recommended)</span>
-                                    <span class="help-text">When disabled, LLM decides response format independently</span>
+                                    <span class="help-text">Disabling this will let the AI decide the response format freely</span>
                                 </label>
                             </div>
 
@@ -166,9 +169,37 @@
                 <!-- Instructions Tab -->
                 <div id="instructions" class="tab-panel">
                     <div class="instructions-section">
-                        <h3>Edit System Instructions</h3>
-                        <p>Modify the instructions used for test case generation. Changes are sent with each request and do not modify the original file.</p>
-                        <textarea id="instructionsTextarea" rows="20" placeholder="Loading instructions..."></textarea>
+                        <div class="instructions-info">
+                            <h3>📋 System Instructions</h3>
+                            <p>Customize the system instructions used for test case generation. 
+                            These instructions guide the AI in generating appropriate test cases.</p>
+                            <p><strong>Note:</strong> Changes here only affect the current session and do not modify the original instructions file.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="instructionsTextarea">
+                                Custom Instructions
+                                <span class="help-text">Edit the instructions that will be sent to the AI model</span>
+                            </label>
+                            <textarea id="instructionsTextarea" rows="15" 
+                                      placeholder="Loading instructions..."></textarea>
+                        </div>
+
+                        <div class="instructions-actions">
+                            <button type="button" class="btn-secondary" id="loadInstructionsBtn">
+                                <span class="btn-text">🔄 Reload Original</span>
+                            </button>
+                            <button type="button" class="btn-action" id="exportInstructionsBtn">
+                                <span class="btn-text">💾 Export</span>
+                            </button>
+                            <button type="button" class="btn-action" id="importInstructionsBtn">
+                                <span class="btn-text">📁 Import</span>
+                            </button>
+                            <input type="file" id="importFileInput" accept=".txt" style="display: none;">
+                            <button type="button" class="btn-action" id="clearInstructionsBtn">
+                                <span class="btn-text">🗑️ Clear</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
